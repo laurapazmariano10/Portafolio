@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .animate-signature {
+    animation: drawSignature 5s linear infinite;
+  }
+}
+
+@keyframes drawSignature {
+  0% {
+    clip-path: inset(0 100% 0 0);
+    opacity: 1;
+  }
+  60% {
+    clip-path: inset(0 0% 0 0);
+    opacity: 1;
+  }
+  90% {
+    clip-path: inset(0 0% 0 0);
+    opacity: 1;
+  }
+  95% {
+    clip-path: inset(0 0% 0 0);
+    opacity: 0;
+  }
+  100% {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0;
+  }
+}
