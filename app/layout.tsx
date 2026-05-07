@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Oswald, Playfair_Display } from 'next/font/google';
+import { Antonio, Bricolage_Grotesque, Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 
 const inter = Inter({
@@ -7,14 +7,19 @@ const inter = Inter({
   variable: '--font-sans',
 });
 
-const oswald = Oswald({
-  subsets: ['latin'],
-  variable: '--font-display',
-});
-
 const playfair = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-serif',
+});
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ['latin'],
+  variable: '--font-editorial',
+});
+
+const antonio = Antonio({
+  subsets: ['latin'],
+  variable: '--font-antonio',
 });
 
 export const metadata: Metadata = {
@@ -28,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${oswald.variable} ${playfair.variable}`}>
+    <html lang="en" className={`${inter.variable} ${playfair.variable} ${bricolage.variable} ${antonio.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased bg-[#FFFFFF]" suppressHydrationWarning>
         {children}
       </body>

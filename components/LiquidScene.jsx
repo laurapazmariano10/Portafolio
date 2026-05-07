@@ -1,10 +1,10 @@
 "use client";
-/* eslint-disable react-hooks/immutability */
 
 import React, { useRef, useMemo, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
+import gsap from "gsap";
 
 // === SIMPLEX NOISE GLOBAL ===
 const snoise = `
@@ -59,6 +59,8 @@ const fragmentBackground = `
   uniform vec3 u_trail[10];
   uniform vec2 u_resolution;
   uniform float u_sminK;
+  uniform float u_globalReveal;
+  uniform float u_sceneProgress;
   varying vec2 vUv;
 
   float sdCapsule(vec2 p, vec2 a, vec2 b, float r1, float r2) {
@@ -119,20 +121,24 @@ const fragmentBackground = `
     d += n_mask * (maxR * 0.15);
     
     // Matemática pura para los bordes fluidos con corte sin pixeles duros
-    float mask = (1.0 - smoothstep(0.0, 0.002, d)) * isActive;
+    float mask = max((1.0 - smoothstep(0.0, 0.002, d)) * isActive, u_globalReveal);
 
-    // COLORES EXACTOS
-    // Fuera del cursor (Normal)
     vec3 normalBgColor = vec3(0.96, 0.96, 0.97); 
     vec3 normalLineColor = vec3(0.41, 0.45, 0.95); 
 
-    // Dentro del cursor (Hover) -> Rojo oscuro en fondo azul medio oscuro
-    vec3 hoverBgColor = vec3(0.12, 0.18, 0.35); // Azul medio oscuro, no tan negro
-    vec3 hoverLineColor = vec3(0.55, 0.05, 0.05); // Rojo oscuro
+    vec3 hoverBgColor = vec3(0.12, 0.18, 0.35);
+    vec3 hoverLineColor = vec3(0.55, 0.05, 0.05);
 
-    // Combinación basada ESTRICTAMENTE en la máscara
-    vec3 currentBgColor = mix(normalBgColor, hoverBgColor, mask);
-    vec3 currentLineColor = mix(normalLineColor, hoverLineColor, mask);
+    vec3 editorialBgColor = vec3(0.015, 0.017, 0.020);
+    vec3 editorialLineColor = vec3(0.92, 0.93, 0.96);
+
+    float phaseToEditorial = smoothstep(0.0, 1.0, u_sceneProgress);
+    float hoverOnlyOnHero = mask * (1.0 - phaseToEditorial);
+
+    vec3 currentBgColor = mix(normalBgColor, hoverBgColor, hoverOnlyOnHero);
+    vec3 currentLineColor = mix(normalLineColor, hoverLineColor, hoverOnlyOnHero);
+    currentBgColor = mix(currentBgColor, editorialBgColor, phaseToEditorial);
+    currentLineColor = mix(currentLineColor, editorialLineColor, phaseToEditorial);
 
     vec3 col = mix(currentLineColor, currentBgColor, lines);
 
@@ -157,6 +163,8 @@ const fragmentLiquid = `
   
   uniform vec2 u_resolution;
   uniform vec2 u_imageResolution;
+  uniform float u_globalReveal;
+  uniform float u_sceneProgress;
   
   varying vec2 vUv;
 
@@ -214,7 +222,7 @@ const fragmentLiquid = `
     d += n_mask * (maxR * 0.15);
     
     // Corte directo (sin difuminado en los bordes) manteniendo pureza
-    float mask = (1.0 - smoothstep(0.0, 0.002, d)) * isActive;
+    float mask = max((1.0 - smoothstep(0.0, 0.002, d)) * isActive, u_globalReveal);
 
     // Mapeo de profundidad 3D individual para tener parallax sincronizado puro
     float depthBase = texture2D(u_textureDepth, uvCover).r;
@@ -287,12 +295,13 @@ const fragmentLiquid = `
     
     // MEZCLA DE TEXTURAS DIRECTA (Sin luz en los bordes para mantener la pureza natural del revelado)
     vec4 finalColor = mix(baseConBoceto, texReveal, mask);
+    finalColor.a *= 1.0 - smoothstep(0.02, 0.38, u_sceneProgress);
     
     gl_FragColor = finalColor;
   }
 `;
 
-function SceneContent() {
+function SceneContent({ isGlobalRevealed, onTrailUpdate, onReady, sceneProgressOverride, backgroundOnly = false }) {
     const { size, viewport } = useThree();
 
     const [texBase, texReveal, texDepth, texDepthHero, texScan] = useTexture(["/Sujeto.png", "/Hero.png", "/DepthMap.png", "/DepthMapHero.png", "/Scaneo2.png"]);
@@ -303,12 +312,15 @@ function SceneContent() {
     // Referencias directas a los materiales para forzar actualización en GPU
     const bgMatRef = useRef(null);
     const liquidMatRef = useRef(null);
+    const hasReportedReady = useRef(false);
 
     const bgUniforms = useMemo(() => ({
         u_time: { value: 0 },
         u_trail: { value: new Array(10).fill(0).map(() => new THREE.Vector3(0.5, 0.5, 0.0)) },
         u_resolution: { value: new THREE.Vector2(1024, 1024) },
-        u_sminK: { value: 0.020 }
+        u_sminK: { value: 0.020 },
+        u_globalReveal: { value: 0.0 },
+        u_sceneProgress: { value: 0.0 }
     }), []);
 
     const liquidUniforms = useMemo(() => {
@@ -323,18 +335,88 @@ function SceneContent() {
             u_textureReveal: { value: texReveal },
             u_textureDepth: { value: texDepth },
             u_textureDepthHero: { value: texDepthHero },
-            u_textureScan: { value: texScan }
+            u_textureScan: { value: texScan },
+            u_globalReveal: { value: 0.0 },
+            u_sceneProgress: { value: 0.0 }
         };
     }, [texBase, texReveal, texDepth, texDepthHero, texScan]);
 
     useEffect(() => {
-        if (liquidUniforms.u_resolution) {
+        if (!backgroundOnly && liquidUniforms.u_resolution) {
             liquidUniforms.u_resolution.value.set(size.width, size.height);
         }
         if (bgUniforms.u_resolution) {
             bgUniforms.u_resolution.value.set(size.width, size.height);
         }
-    }, [size.width, size.height, liquidUniforms, bgUniforms]);
+    }, [size.width, size.height, liquidUniforms, bgUniforms, backgroundOnly]);
+
+    const revealState = useRef({ hover: 0, scroll: 0, scene: 0 });
+
+    useEffect(() => {
+        if (!bgMatRef.current || (!backgroundOnly && !liquidMatRef.current)) return;
+        
+        const tween = gsap.to(revealState.current, {
+            hover: isGlobalRevealed ? 1.0 : 0.0,
+            duration: 1.0,
+            ease: "power2.inOut",
+            onUpdate: () => {
+                if (bgMatRef.current) {
+                    const val = Math.max(revealState.current.hover, revealState.current.scroll);
+                    bgMatRef.current.uniforms.u_globalReveal.value = val;
+                    if (!backgroundOnly && liquidMatRef.current) {
+                        liquidMatRef.current.uniforms.u_globalReveal.value = val;
+                    }
+                }
+            }
+        });
+
+        return () => tween.kill();
+    }, [isGlobalRevealed, backgroundOnly]);
+
+    useEffect(() => {
+        if (!bgMatRef.current || (!backgroundOnly && !liquidMatRef.current)) return;
+
+        if (typeof sceneProgressOverride === "number") {
+            const progress = THREE.MathUtils.clamp(sceneProgressOverride, 0, 1);
+            revealState.current.scene = progress;
+            bgMatRef.current.uniforms.u_sceneProgress.value = progress;
+            if (!backgroundOnly && liquidMatRef.current) {
+                liquidMatRef.current.uniforms.u_sceneProgress.value = progress;
+            }
+            return;
+        }
+
+        let rafId = 0;
+        const updateSceneProgress = () => {
+            rafId = 0;
+            const end = Math.max(window.innerHeight * 1.08, 1);
+            const progress = THREE.MathUtils.clamp(window.scrollY / end, 0, 1);
+            revealState.current.scene = progress;
+            if (bgMatRef.current) {
+                bgMatRef.current.uniforms.u_sceneProgress.value = progress;
+                if (!backgroundOnly && liquidMatRef.current) {
+                    liquidMatRef.current.uniforms.u_sceneProgress.value = progress;
+                }
+            }
+        };
+
+        const requestUpdate = () => {
+            if (rafId) return;
+            rafId = window.requestAnimationFrame(updateSceneProgress);
+        };
+
+        updateSceneProgress();
+        window.addEventListener("scroll", requestUpdate, { passive: true });
+        window.addEventListener("resize", requestUpdate);
+        window.addEventListener("orientationchange", requestUpdate);
+
+        return () => {
+            if (rafId) window.cancelAnimationFrame(rafId);
+            window.removeEventListener("scroll", requestUpdate);
+            window.removeEventListener("resize", requestUpdate);
+            window.removeEventListener("orientationchange", requestUpdate);
+        };
+    }, [sceneProgressOverride, backgroundOnly]);
 
     const parallaxMouse = useRef(new THREE.Vector2(0.5, 0.5));
 
@@ -361,6 +443,11 @@ function SceneContent() {
 
     useFrame(({ pointer, clock }, delta) => {
         const dt = Math.min(delta, 0.05); // Clamp para evitar saltos por ALT+TAB
+
+        if (!hasReportedReady.current && bgMatRef.current && liquidMatRef.current) {
+            hasReportedReady.current = true;
+            onReady?.();
+        }
 
         // ─── 1. MOUSE EN UV (0..1) ───
         const mx = pointer.x * 0.5 + 0.5;
@@ -462,7 +549,7 @@ function SceneContent() {
             bgRef.current.position.set(0, 0, 0);
         }
 
-        if (liquidRef.current) {
+        if (!backgroundOnly && liquidRef.current) {
             liquidRef.current.position.x = (parallaxMouse.current.x - 0.5) * 0.003;
             liquidRef.current.position.y = (parallaxMouse.current.y - 0.5) * 0.003;
         }
@@ -475,9 +562,17 @@ function SceneContent() {
             bgMatRef.current.uniforms.u_trail.value = trailRef.current;
         }
 
-        if (liquidMatRef.current) {
+        if (!backgroundOnly && liquidMatRef.current) {
             liquidMatRef.current.uniforms.u_time.value = t;
             liquidMatRef.current.uniforms.u_trail.value = trailRef.current;
+        }
+
+        // ─── 10. EXPONER TRAIL AL DOM ───
+        if (!backgroundOnly && onTrailUpdate) {
+            const globalRevealVal = bgMatRef.current
+                ? bgMatRef.current.uniforms.u_globalReveal.value
+                : 0.0;
+            onTrailUpdate(trailRef.current, size.width, size.height, globalRevealVal);
         }
     });
 
@@ -506,36 +601,51 @@ function SceneContent() {
                 />
             </mesh>
 
-            {/* CAPA IMAGEN LÍQUIDO */}
-            <mesh ref={liquidRef} position={[0, 0, 0.0]} renderOrder={1}>
-                <planeGeometry args={[viewport.width, viewport.height]} />
-                <shaderMaterial
-                    ref={liquidMatRef}
-                    vertexShader={vertexShader}
-                    fragmentShader={fragmentLiquid}
-                    uniforms={liquidUniforms}
-                    transparent={true}
-                    depthTest={false}
-                    depthWrite={false}
-                    blending={THREE.NormalBlending}
-                />
-            </mesh>
+            {!backgroundOnly && (
+                <mesh ref={liquidRef} position={[0, 0, 0.0]} renderOrder={1}>
+                    <planeGeometry args={[viewport.width, viewport.height]} />
+                    <shaderMaterial
+                        ref={liquidMatRef}
+                        vertexShader={vertexShader}
+                        fragmentShader={fragmentLiquid}
+                        uniforms={liquidUniforms}
+                        transparent={true}
+                        depthTest={false}
+                        depthWrite={false}
+                        blending={THREE.NormalBlending}
+                    />
+                </mesh>
+            )}
         </>
     );
 }
 
 // === COMPONENTE PRINCIPAL ===
-export default function LiquidScene() {
+export default function LiquidScene({ isGlobalRevealed = false, onTrailUpdate, onReady, sceneProgressOverride, containerStyle, backgroundOnly = false, dpr = [1, 1.5] }) {
+    const resolvedContainerStyle = {
+        position: "fixed",
+        inset: 0,
+        zIndex: 0,
+        overflow: "hidden",
+        ...containerStyle,
+    };
+
     return (
-        <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden" }} suppressHydrationWarning>
+        <div style={resolvedContainerStyle} suppressHydrationWarning>
             <Canvas
                 camera={{ position: [0, 0, 1], fov: 50 }}
-                gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
-                dpr={[1, 1.5]}
-                style={{ width: "100%", height: "100%", position: "absolute", inset: 0, pointerEvents: "auto" }}
+                gl={{ alpha: true, antialias: !backgroundOnly, powerPreference: backgroundOnly ? "low-power" : "high-performance" }}
+                dpr={dpr}
+                style={{ width: "100%", height: "100%", position: "absolute", inset: 0, pointerEvents: backgroundOnly ? "none" : "auto" }}
             >
                 <React.Suspense fallback={null}>
-                    <SceneContent />
+                    <SceneContent
+                        isGlobalRevealed={isGlobalRevealed}
+                        onTrailUpdate={onTrailUpdate}
+                        onReady={onReady}
+                        sceneProgressOverride={sceneProgressOverride}
+                        backgroundOnly={backgroundOnly}
+                    />
                 </React.Suspense>
             </Canvas>
         </div>
