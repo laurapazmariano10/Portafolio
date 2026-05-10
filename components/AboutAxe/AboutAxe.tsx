@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { createScene, handleResize } from './scene';
 import { setupLights } from './lights';
-import { loadAxeModel } from './loaders';
+import { loadKatanaModel } from './loaders';
 import { setupScrollAnimation } from './scrollAnimation';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/dist/ScrollTrigger';
@@ -51,9 +51,9 @@ export default function AboutAxe({
       if (disposed) return;
 
       // ── Model ──
-      let axe;
+      let katana, vaina;
       try {
-        axe = await loadAxeModel();
+        ({ katana, vaina } = await loadKatanaModel());
       } catch (e) {
         console.error('[AboutAxe] Model load failed', e);
         return;
@@ -61,10 +61,11 @@ export default function AboutAxe({
 
       if (disposed) return;
 
-      scene.add(axe);
+      scene.add(katana);
+      scene.add(vaina);
 
       // ── Scroll animation ──
-      cleanupScroll = setupScrollAnimation(axe, camera, wrapper, canvas);
+      cleanupScroll = setupScrollAnimation(katana, vaina, camera, wrapper, canvas);
 
       // ── Show/hide canvas based on wrapper visibility ──
       visibilityST = ScrollTrigger.create({

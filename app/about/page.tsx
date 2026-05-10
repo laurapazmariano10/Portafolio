@@ -126,9 +126,9 @@ export default function AboutSection() {
       {/* Wrapper for ScrollTrigger to measure total scroll distance */}
       <div ref={aboutWrapperRef}>
 
-      <section id="hero-section" className="relative flex h-[100dvh] min-h-[620px] w-full items-center justify-center">
+      <section id="hero-section" className="relative flex h-[100dvh] min-h-[620px] w-full items-center justify-center" style={{ willChange: 'transform', transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}>
         <div className="pointer-events-none absolute inset-0 z-0 flex select-none flex-row items-center justify-center">
-          <motion.div 
+          <motion.div
             initial={{ x: '10vw', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
@@ -144,7 +144,7 @@ export default function AboutSection() {
             </div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial={{ x: '-10vw', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}

@@ -14,7 +14,7 @@ export function Navbar() {
   const navItems = [
     { name: 'Inicio', path: '/' },
     { name: 'Acerca de', path: '/about' },
-    { name: 'Proyectos', path: '/#projects' },
+    { name: 'Proyectos', path: '/projects' },
     { name: 'Blog', path: '/#blog' },
   ];
 
@@ -82,7 +82,7 @@ export function Navbar() {
       
           <div className="hidden sm:flex flex-row items-center justify-center flex-1 gap-6">
             {navItems.map((item) => {
-              const isActive = pathname === item.path;
+              const isActive = pathname === item.path || (item.path === '/projects' && pathname.startsWith('/projects/'));
               return (
                 <motion.div
                   key={item.name}

@@ -1,20 +1,17 @@
-import { Group, PerspectiveCamera, Box3, Vector3 } from 'three';
+import { Box3, Group, PerspectiveCamera, Vector3 } from 'three';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/dist/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
 // ─── UTILIDADES ───────────────────────────────────────────────────────────────
-/** Interpolación lineal entre dos valores */
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 
-/** Curva de Bezier Cuadrática (Parábola suave) */
 function bezier(p0: number, p1: number, p2: number, t: number) {
   const u = 1 - t;
   return u * u * p0 + 2 * u * t * p1 + t * t * p2;
 }
 
-/** Interpola entre dos poses usando interpolación lineal (para tramos simples) */
 function lerpPose(
   A: { pos: { x: number; y: number; z: number }; rot: { x: number; y: number; z: number }; scale: number },
   B: { pos: { x: number; y: number; z: number }; rot: { x: number; y: number; z: number }; scale: number },
@@ -27,7 +24,6 @@ function lerpPose(
   };
 }
 
-/** Genera una trayectoria parabólica suave usando un punto de control (curva Bezier) */
 function bezierPose(
   A: { pos: { x: number; y: number; z: number }; rot: { x: number; y: number; z: number }; scale: number },
   Control: { pos: { x: number; y: number; z: number }; rot: { x: number; y: number; z: number }; scale: number },
@@ -49,80 +45,144 @@ function bezierPose(
   };
 }
 
-// ─── POSES MAESTRAS (fuente de verdad) ───────────────────────────────────────
-const POSES = {
+// ─── ESCALA GLOBAL ─────────────────────────────────────────────────────────
+// Multiplicador para todas las escalas. 2.16 = 35% más grande que el ajuste anterior (1.6).
+const SCALE_MULT = 2.16;
+const S = (n: number) => n * SCALE_MULT;
+
+const KATANA_DRAW_OFFSET = 5.5; // cuánto se desliza la katana al desenvainar (eje X mundo)
+const INITIAL_KATANA_DRAW = 1.2; // katana arranca ya parcialmente fuera de la vaina (eje X+)
+
+// ─── TRANSFORM ENVAINADO (compartido katana+vaina al inicio) ─────────────
+// Ambos modelos comparten origen (0,0,0) en la handguard.
+// Mismo transform → katana perfectamente envainada.
+const SHEATHED_S1 = {
+  pos: { x: -0.700, y: -3.950, z: -6.000 },
+  rot: { x: 0, y: 0, z: Math.PI / 2 },       // Horizontal invertida: filo hacia la izquierda
+  scale: S(0.325),
+};
+
+// Offset Y de la vaina respecto a la katana para evitar clipping por curvatura al desenvainar
+const VAINA_Y_OFFSET = 0.06;
+const VAINA_OFFSCREEN_X = -22;
+
+// Pose intermedia: katana ya DESENVAINADA, deslizada en X+ a lo largo de su filo.
+// Misma rotación, misma altura, solo X desplazado.
+const S1_DRAWN = {
+  pos: { x: SHEATHED_S1.pos.x + KATANA_DRAW_OFFSET, y: SHEATHED_S1.pos.y, z: SHEATHED_S1.pos.z },
+  rot: { ...SHEATHED_S1.rot },
+  scale: SHEATHED_S1.scale,
+  camZ: 5.500,
+};
+
+// ─── POSES KATANA (S2-S4 con DOM intactas, solo escala global aumentada) ──
+const KATANA_POSES = {
   S1_HERO: {
-    pos: { x: -0.850, y: -3.950, z: -6.000 },
-    rot: { x: -3.100, y: -3.150, z: -1.650 },
-    scale: 0.250,
+    ...SHEATHED_S1,
     camZ: 5.500,
   },
   S2_ABOUT: {
     pos: { x: 1.850, y: 0.300, z: -1.200 },
     rot: { x: 0.240, y: -3.150, z: 0.000 },
-    scale: 0.150,
+    scale: S(0.195),
     camZ: 5.500,
   },
   WP_GAP_1: {
     pos: { x: -0.550, y: -1.200, z: -6.000 },
     rot: { x: -3.100, y: -0.050, z: -1.650 },
-    scale: 0.250,
+    scale: S(0.325),
     camZ: 5.500,
   },
   S3_SERVICES: {
     pos: { x: -2.100, y: 0.300, z: -0.350 },
     rot: { x: 0.390, y: 0.150, z: -0.050 },
-    scale: 0.150,
+    scale: S(0.195),
     camZ: 5.500,
   },
   WP_GAP_2: {
-    pos: { x: -0.550, y: -2.200, z: -6.000 },
+    pos: { x: -2.100, y: -2.500, z: -6.000 },
     rot: { x: -1.020, y: -3.150, z: -1.650 },
-    scale: 0.250,
+    scale: S(0.325),
     camZ: 5.500,
   },
   S4_STACK: {
     pos: { x: 5.450, y: 0.550, z: -6.000 },
     rot: { x: 0.190, y: -3.150, z: 0.000 },
-    scale: 0.500,
+    scale: S(0.500),
     camZ: 11.300,
+  },
+  // S4 macro scan: katana vertical, grande y fija. La cámara recorre desde
+  // el mango hasta la punta durante todo el scroll de la sección.
+  // Giro invertido para que el mango pase cerca de cámara. Katana termina
+  // completamente vertical y boca abajo (mango arriba, filo abajo).
+  S4_CLOSEUP: {
+    pos: { x: 2.900, y: 0.000, z: -3.600 },
+    rot: { x: Math.PI, y: 3.200, z: 0 },
+    scale: S(0.700),
+    camZ: 4.600,
+    camY_start: 5.000,
+    camY_end:  -5.000,
   },
 } as const;
 
-// ─── POSE FINAL (incrustada) ──────────────────────────────────────────────────
-const POSE_FINAL = {
-  rot: { x: -3.15, y: -0.05, z: 1.26 - Math.PI * 4 },
-  pos: { y: -1.5 },
-};
-
 export function setupScrollAnimation(
-  axe: Group,
+  katana: Group,
+  vaina: Group,
   camera: PerspectiveCamera,
   wrapper: HTMLElement,
   canvas: HTMLCanvasElement,
 ): () => void {
 
-  // 1. Centrar el modelo en su propio origen
-  const rawBox = new Box3().setFromObject(axe);
-  const center = new Vector3();
-  rawBox.getCenter(center);
-  axe.position.sub(center);
+  // ─── POSE INICIAL ─────────────────────────────────────────────────────────
+  // Katana arranca PARCIALMENTE desenvainada (visualmente más alejada de la vaina).
+  const INITIAL_KATANA_X = SHEATHED_S1.pos.x + INITIAL_KATANA_DRAW;
+  const FINAL_KATANA_X   = SHEATHED_S1.pos.x + KATANA_DRAW_OFFSET;
 
-  // 2. Pose inicial (Hero)
-  gsap.set(axe.position, POSES.S1_HERO.pos);
-  gsap.set(axe.rotation, POSES.S1_HERO.rot);
-  gsap.set(axe.scale, { x: POSES.S1_HERO.scale, y: POSES.S1_HERO.scale, z: POSES.S1_HERO.scale });
-  gsap.set(camera.position, { z: POSES.S1_HERO.camZ });
+  gsap.set(katana.position, { x: INITIAL_KATANA_X, y: SHEATHED_S1.pos.y, z: SHEATHED_S1.pos.z });
+  gsap.set(katana.rotation, SHEATHED_S1.rot);
+  gsap.set(katana.scale, { x: SHEATHED_S1.scale, y: SHEATHED_S1.scale, z: SHEATHED_S1.scale });
+
+  // VAINA estática: pose única, nunca se anima ni se mueve.
+  gsap.set(vaina.position, {
+    x: SHEATHED_S1.pos.x,
+    y: SHEATHED_S1.pos.y + VAINA_Y_OFFSET,
+    z: SHEATHED_S1.pos.z,
+  });
+  gsap.set(vaina.rotation, SHEATHED_S1.rot);
+  gsap.set(vaina.scale, { x: SHEATHED_S1.scale, y: SHEATHED_S1.scale, z: SHEATHED_S1.scale });
+  vaina.visible = true;
+
+  gsap.set(camera.position, { x: 0, y: 0, z: KATANA_POSES.S1_HERO.camZ });
   gsap.set(canvas, { filter: 'drop-shadow(0px 30px 25px rgba(0,0,0,0.6))', y: 0 });
 
+  // ─── BOUNDING BOX KATANA: longitud real para calibrar pan vertical S4 ────
+  katana.updateMatrixWorld(true);
+  const bbox = new Box3().setFromObject(katana);
+  const bboxSize = new Vector3();
+  bbox.getSize(bboxSize);
+  const longestDim = Math.max(bboxSize.x, bboxSize.y, bboxSize.z);
+  // Longitud sin escalar
+  const naturalLength = longestDim / SHEATHED_S1.scale;
+  // Longitud final en S4 (escala S4_CLOSEUP). Se usa para calibrar el paneo
+  // vertical de cámara desde mango hasta punta.
+  const s4Length = naturalLength * KATANA_POSES.S4_CLOSEUP.scale;
+
+  // ─── FASE INICIAL: SIN PIN ───────────────────────────────────────────────
+  // Antes el hero quedaba pinned durante el desenvainado, lo que provocaba
+  // parpadeo en desktop al re-engancharse el pin (Framer Motion + position:fixed).
+  // Ahora la página scrollea con normalidad: la katana se desenvaina y la vaina
+  // se desliza a la derecha durante los primeros UNSHEATH_SCROLL px de scroll.
+  // Reducido drásticamente a 100px y GAP aumentado para asegurar separación máxima.
+  const UNSHEATH_SCROLL = 100; // px de scroll dedicados al desenvainado
+
   // ─── CÁLCULO MILIMÉTRICO 1:1 CON EL DOM ──────────────────────────────────
+  // NOTA: se calcula DESPUÉS de crear el pin para que el spacer ya esté en el DOM
   const vp = window.innerHeight;
   const halfH = vp / 2;
 
-  const heroEl    = document.getElementById('hero-section');
-  const aboutEl   = document.getElementById('about-me-section');
+  const aboutEl    = document.getElementById('about-me-section');
   const servicesEl = document.getElementById('services-section');
-  const stackEl   = document.getElementById('stack-section');
+  const stackEl    = document.getElementById('stack-section');
 
   const getTop = (el: HTMLElement | null): number => {
     if (!el) return 0;
@@ -135,44 +195,46 @@ export function setupScrollAnimation(
     return offset;
   };
 
-  const heroTop    = getTop(heroEl);
-  const aboutTop   = getTop(aboutEl);
+  // Sin pin: las posiciones DOM son las naturales. El desenvainado ocurre
+  // dentro de los primeros UNSHEATH_SCROLL px de scroll del propio hero.
+  const aboutTop    = getTop(aboutEl);
   const servicesTop = getTop(servicesEl);
-  const stackTop   = getTop(stackEl);
+  const stackTop    = getTop(stackEl);
 
-  const heroH     = heroEl    ? heroEl.offsetHeight    : vp;
-  const aboutH    = aboutEl   ? aboutEl.offsetHeight   : vp;
-  const servicesH = servicesEl ? servicesEl.offsetHeight : vp;
-  const stackH    = stackEl   ? stackEl.offsetHeight   : vp * 2;
+  const aboutH     = aboutEl    ? aboutEl.offsetHeight    : vp;
+  const servicesH  = servicesEl ? servicesEl.offsetHeight : vp;
+  const stackH     = stackEl    ? stackEl.offsetHeight    : vp * 2;
+  const GAP  = 80;
 
-  // Puntos maestros de scroll
-  const raw_S1  = 0;
-  const raw_S2  = aboutTop  + aboutH  / 2 - halfH;
-  const raw_S3  = servicesTop + servicesH / 2 - halfH;
-  const raw_S4  = stackTop  - halfH * 0.6;
+  // Puntos maestros de scroll (en píxeles absolutos desde el inicio del wrapper)
+  const t_S1        = 0;                        // inicio (envainado parcial)
+  const t_S1_drawn  = UNSHEATH_SCROLL;          // fin del pin = katana totalmente desenvainada
+  const raw_S2      = aboutTop    + aboutH    / 2 - halfH;
+  const raw_S3      = servicesTop + servicesH / 2 - halfH;
+  const raw_S4      = stackTop    - halfH * 1.55;
 
-  // Scroll total = fondo de la sección Stack toca fondo de pantalla
-  const scrollMax   = stackTop + stackH - vp;
+  const scrollMax   = Math.max(t_S1_drawn + GAP, stackTop + stackH - vp);
   const raw_SpinEnd = scrollMax;
 
-  // Clamp estrictamente creciente
-  const GAP  = 20;
-  const t_S1  = raw_S1;
-  const t_S2  = Math.max(t_S1  + GAP, raw_S2);
-  const t_S3  = Math.max(t_S2  + GAP, raw_S3);
-  const t_S4  = Math.max(t_S3  + GAP, raw_S4);
-  const t_End = Math.max(t_S4  + GAP, raw_SpinEnd);
+  // Clamp estrictamente creciente. S2 forzado a empezar 500px después del desenvainado
+  // para asegurar máxima separación visual.
+  const t_S2  = Math.max(t_S1_drawn + 500, raw_S2);
+  const t_S3  = Math.max(t_S2       + GAP, raw_S3);
+  const t_S4  = Math.max(t_S3       + GAP, raw_S4);
+  const t_End = Math.max(t_S4       + GAP, raw_SpinEnd);
 
   // Duraciones de cada tramo principal
-  const dur_S1toS2  = t_S2  - t_S1;
-  const dur_S2toS3  = t_S3  - t_S2;
-  const dur_S3toS4  = t_S4  - t_S3;
-  const dur_Spin    = t_End - t_S4;
-  const dur_Hold    = Math.max(0, scrollMax - t_End);
+  const dur_Unsheathe   = t_S1_drawn - t_S1;
+  const dur_S1drawnToS2 = t_S2  - t_S1_drawn;
+  const dur_S2toS3      = t_S3  - t_S2;
+  const dur_S3toS4      = t_S4  - t_S3;
+  const dur_Spin        = t_End - t_S4;
+  const dur_Hold        = Math.max(0, scrollMax - t_End);
 
-  // ─── HELPER: añade sub-waypoints interpolados (LINEAL) ─────────────
+  // ─── HELPERS: sub-waypoints ──────────────────────────────────────────────
   function addSegment(
     tl: gsap.core.Timeline,
+    target: Group,
     from: { pos: { x: number; y: number; z: number }; rot: { x: number; y: number; z: number }; scale: number; camZ?: number },
     to:   { pos: { x: number; y: number; z: number }; rot: { x: number; y: number; z: number }; scale: number; camZ?: number },
     totalDur: number,
@@ -184,18 +246,18 @@ export function setupScrollAnimation(
       const t = i / steps;
       const p = lerpPose(from, to, t);
       tl
-        .to(axe.position, { x: p.pos.x, y: p.pos.y, z: p.pos.z, duration: stepDur, ease: 'none' }, i === 1 ? position : '>')
-        .to(axe.rotation, { x: p.rot.x, y: p.rot.y, z: p.rot.z, duration: stepDur, ease: 'none' }, '<')
-        .to(axe.scale,    { x: p.scale,  y: p.scale,  z: p.scale,  duration: stepDur, ease: 'none' }, '<');
+        .to(target.position, { x: p.pos.x, y: p.pos.y, z: p.pos.z, duration: stepDur, ease: 'none' }, i === 1 ? position : '>')
+        .to(target.rotation, { x: p.rot.x, y: p.rot.y, z: p.rot.z, duration: stepDur, ease: 'none' }, '<')
+        .to(target.scale,    { x: p.scale,  y: p.scale,  z: p.scale,  duration: stepDur, ease: 'none' }, '<');
       if (to.camZ !== undefined && from.camZ !== undefined) {
         tl.to(camera.position, { z: lerp(from.camZ, to.camZ, t), duration: stepDur, ease: 'none' }, '<');
       }
     }
   }
 
-  // ─── HELPER: añade sub-waypoints interpolados (BEZIER / CURVA) ─────────────
   function addBezierSegment(
     tl: gsap.core.Timeline,
+    target: Group,
     from: { pos: { x: number; y: number; z: number }; rot: { x: number; y: number; z: number }; scale: number; camZ?: number },
     control: { pos: { x: number; y: number; z: number }; rot: { x: number; y: number; z: number }; scale: number },
     to:   { pos: { x: number; y: number; z: number }; rot: { x: number; y: number; z: number }; scale: number; camZ?: number },
@@ -208,23 +270,24 @@ export function setupScrollAnimation(
       const t = i / steps;
       const p = bezierPose(from, control, to, t);
       tl
-        .to(axe.position, { x: p.pos.x, y: p.pos.y, z: p.pos.z, duration: stepDur, ease: 'none' }, i === 1 ? position : '>')
-        .to(axe.rotation, { x: p.rot.x, y: p.rot.y, z: p.rot.z, duration: stepDur, ease: 'none' }, '<')
-        .to(axe.scale,    { x: p.scale,  y: p.scale,  z: p.scale,  duration: stepDur, ease: 'none' }, '<');
+        .to(target.position, { x: p.pos.x, y: p.pos.y, z: p.pos.z, duration: stepDur, ease: 'none' }, i === 1 ? position : '>')
+        .to(target.rotation, { x: p.rot.x, y: p.rot.y, z: p.rot.z, duration: stepDur, ease: 'none' }, '<')
+        .to(target.scale,    { x: p.scale,  y: p.scale,  z: p.scale,  duration: stepDur, ease: 'none' }, '<');
       if (to.camZ !== undefined && from.camZ !== undefined) {
         tl.to(camera.position, { z: lerp(from.camZ, to.camZ, t), duration: stepDur, ease: 'none' }, '<');
       }
     }
   }
 
-  // ─── MASTER TIMELINE ──────────────────────────────────────────────────────
+  // ─── MASTER TIMELINE (UNIFICADO: pinned + post-pin) ──────────────────────
   const masterTL = gsap.timeline({
     scrollTrigger: {
       trigger: wrapper,
       start: 'top top',
       end: () => `+=${scrollMax}`,
-      scrub: 0.8,      // Responsive sin delay excesivo
+      scrub: 1,
       invalidateOnRefresh: true,
+      fastScrollEnd: true,
       onLeave: () => {
         canvas.style.position = 'absolute';
         canvas.style.top      = `${scrollMax}px`;
@@ -238,59 +301,110 @@ export function setupScrollAnimation(
     },
   });
 
-  // Sombra en el primer tramo
-  masterTL.to(canvas, {
-    filter: 'drop-shadow(0px 30px 25px rgba(0,0,0,0.0))',
-    duration: dur_S1toS2,
-    ease: 'none',
-  }, 0);
+  // ─── FASE 0: DESENVAINADO (durante el pin) ──────────────────────────────
+  // SOLO se mueve katana.position.x. Vaina queda quieta. Sin rotación ni escala.
+  masterTL.fromTo(
+    katana.position,
+    { x: INITIAL_KATANA_X },
+    { x: FINAL_KATANA_X, duration: dur_Unsheathe, ease: 'none', immediateRender: false },
+    t_S1,
+  );
+  // (Sombra estática: la animación del filter causaba repintados que parpadeaban
+  // al cruzar el borde del pin. Mejor mantener la sombra constante.)
 
-  // TRAMO 1 ─ Hero → About (Movimiento lineal simple inicial)
-  addSegment(masterTL, POSES.S1_HERO, POSES.S2_ABOUT, dur_S1toS2, 0, 4);
+  // VAINA: curva hacia abajo tipo e^-x para que no desaparezca de golpe.
+  // Primero se desliza más en X para evitar choque con S2, luego baja en Y negativo
+  // con rotación Z sincronizada. Desplazamiento más lento.
+  const vainaStartX = SHEATHED_S1.pos.x;
+  const vainaStartY = SHEATHED_S1.pos.y + VAINA_Y_OFFSET;
+  const vainaMidX = vainaStartX - 3.5;
+  const vainaMidY = vainaStartY;
+  const vainaEndX = vainaMidX - 1.0;
+  const vainaEndY = vainaStartY - 12.0;
+  const vainaEndZ = SHEATHED_S1.pos.z;
+  const vainaDur = 150;
 
-  // TRAMO 2 ─ About → Services (Curva Parabólica usando WP_GAP_1 como punto de control)
-  // Genera un barrido suave tipo "caída" sin detenerse en el gap
-  addBezierSegment(masterTL, POSES.S2_ABOUT, POSES.WP_GAP_1, POSES.S3_SERVICES, dur_S2toS3, '>', 12);
+  // Fase 1: desplazamiento ligero hacia la izquierda
+  masterTL.to(vaina.position, {
+    x: vainaMidX,
+    y: vainaMidY,
+    z: vainaEndZ,
+    duration: vainaDur * 0.4,
+    ease: 'power2.inOut',
+    immediateRender: false,
+  }, t_S1_drawn + 5);
 
-  // TRAMO 3 ─ Services → Stack S4 (Curva Parabólica usando WP_GAP_2 como punto de control)
-  addBezierSegment(masterTL, POSES.S3_SERVICES, POSES.WP_GAP_2, POSES.S4_STACK, dur_S3toS4, '>', 12);
+  // Fase 2: curva suave hacia arriba con rotación Z
+  masterTL.to(vaina.position, {
+    x: vainaEndX,
+    y: vainaEndY,
+    z: vainaEndZ,
+    duration: vainaDur * 0.6,
+    ease: 'power2.inOut',
+  }, t_S1_drawn + 5 + vainaDur * 0.4);
+  masterTL.to(vaina.rotation, {
+    z: Math.PI / 6,
+    duration: vainaDur * 0.6,
+    ease: 'power2.inOut',
+  }, t_S1_drawn + 5 + vainaDur * 0.4);
 
-  // TRAMO 6 ─ Gran giro + bajada hacia pose incrustada (6 sub-pasos)
+  // ─── FASE 1: VUELO — katana de S1_DRAWN → S2_ABOUT (rotando suavemente) ──
+  addSegment(masterTL, katana, S1_DRAWN, KATANA_POSES.S2_ABOUT, Math.max(1, dur_S1drawnToS2 - 8), t_S1_drawn + 8, 5);
+
+  // ─── FASE 2: About → Services (curva parabólica) ─────────────────────────
+  addBezierSegment(masterTL, katana, KATANA_POSES.S2_ABOUT, KATANA_POSES.WP_GAP_1, KATANA_POSES.S3_SERVICES, dur_S2toS3, t_S2, 12);
+
+  // ─── FASE 3: Services → Stack S4 (curva parabólica) ──────────────────────
+  addBezierSegment(masterTL, katana, KATANA_POSES.S3_SERVICES, KATANA_POSES.WP_GAP_2, KATANA_POSES.S4_STACK, dur_S3toS4, t_S3, 12);
+
+  // ─── FASE 4: S4 macro scan ───────────────────────────────────────────────
+  // Tres fases: aproximación → giro cinematográfico a boca abajo → pan vertical.
   if (dur_Spin > 0) {
-    const fromRot = { ...POSES.S4_STACK.rot };
-    const toRot   = POSE_FINAL.rot;
-    const fromPosY = POSES.S4_STACK.pos.y;
-    const toPosY   = POSE_FINAL.pos.y;
-    const steps    = 6;
-    const stepDur  = dur_Spin / steps;
+    const CU = KATANA_POSES.S4_CLOSEUP;
+    const dur_Approach = Math.min(dur_Spin * 0.15, 280);
+    const dur_Flip     = Math.min(dur_Spin * 0.45, 700);
+    const dur_Pan      = dur_Spin - dur_Approach - dur_Flip;
 
-    for (let i = 1; i <= steps; i++) {
-      const t = i / steps;
-      const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // easeInOutQuad
-      masterTL
-        .to(axe.rotation, {
-          x: lerp(fromRot.x, toRot.x, eased),
-          y: lerp(fromRot.y, toRot.y, eased),
-          z: lerp(fromRot.z, toRot.z, eased),
-          duration: stepDur,
-          ease: 'none',
-        }, '>')
-        .to(axe.position, {
-          y: lerp(fromPosY, toPosY, eased),
-          duration: stepDur,
-          ease: 'none',
-        }, '<');
-    }
+    const visibleHeight = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * CU.camZ;
+    const camY_start_dyn = -s4Length * 0.50 + visibleHeight * 0.34;
+    const camY_end_dyn   = +s4Length * 0.50 - visibleHeight * 0.34;
+
+    // Fase A: aproximación a macro (posición, escala, cámara Z).
+    masterTL.to(katana.position, {
+      x: CU.pos.x, y: CU.pos.y, z: CU.pos.z,
+      duration: dur_Approach, ease: 'power2.out',
+    }, t_S4);
+    masterTL.to(katana.scale, {
+      x: CU.scale, y: CU.scale, z: CU.scale,
+      duration: dur_Approach, ease: 'power2.out',
+    }, t_S4);
+    masterTL.to(camera.position, {
+      z: CU.camZ,
+      y: camY_start_dyn,
+      duration: dur_Approach, ease: 'power2.out',
+    }, t_S4);
+
+    // Fase B: giro cinematográfico a boca abajo. Giro limpio con easing suave.
+    masterTL.to(katana.rotation, {
+      x: CU.rot.x, y: CU.rot.y, z: CU.rot.z,
+      duration: dur_Flip, ease: 'power3.inOut',
+    }, t_S4 + dur_Approach);
+
+    // Fase C: pan vertical. Katana ya está boca abajo, cámara recorre de arriba a abajo.
+    masterTL.to(camera.position, {
+      y: camY_end_dyn,
+      duration: dur_Pan, ease: 'none',
+    }, t_S4 + dur_Approach + dur_Flip);
   }
 
-  // TRAMO 7 ─ Hold
+  // ─── FASE 5: Hold ────────────────────────────────────────────────────────
   if (dur_Hold > 0) {
-    masterTL.to({}, { duration: dur_Hold }, '>');
+    masterTL.to({}, { duration: dur_Hold }, t_End);
   }
+
+  // ─── VAINA: físicamente fuera de cámara fuera de S1, sin toggles de visible ──
 
   // ─── CINEMATIC SCROLL REVEAL ─────────────────────────────────────────────
-  // ScrollTrigger.create directo (más estable que gsap.fromTo + scrollTrigger anidado)
-  // El contenido empieza a revelarse al 60% del vuelo del hacha — se ve la animación primero
   const revealSTs: ScrollTrigger[] = [];
 
   function revealSection(
@@ -311,24 +425,23 @@ export function setupScrollAnimation(
         (c): c is HTMLElement => c instanceof HTMLElement
       );
 
-      const slideX = fromRight ? 90 : -90;
+      const slideX = fromRight ? 120 : -120;
       const childCount = innerChildren.length;
-      const staggerStep = childCount > 1 ? (endScroll - startScroll) / (childCount + 1) : (endScroll - startScroll) * 0.5;
+      const staggerStep = childCount > 1 ? (endScroll - startScroll) / (childCount + 2) : (endScroll - startScroll) * 0.6;
 
       innerChildren.forEach((child, index) => {
         const childStart = startScroll + index * staggerStep;
-        const childEnd = childStart + staggerStep * 1.3;
+        const childEnd = childStart + staggerStep * 1.5;
 
-        // Estado inicial
-        gsap.set(child, { opacity: 0, x: slideX, scale: 0.96 });
+        gsap.set(child, { opacity: 0, x: slideX, scale: 0.90, y: 20 });
 
-        // Animación scroll-driven con scrub ligero
         const tween = gsap.to(child, {
           opacity: 1,
           x: 0,
+          y: 0,
           scale: 1,
-          duration: 1,
-          ease: 'power2.out',
+          duration: 1.2,
+          ease: 'power3.inOut',
           paused: true,
         });
 
@@ -336,7 +449,7 @@ export function setupScrollAnimation(
           trigger: wrapper,
           start: childStart,
           end: childEnd,
-          scrub: 0.4,
+          scrub: 1,
           onUpdate: (self) => {
             tween.progress(self.progress);
           },
@@ -347,11 +460,10 @@ export function setupScrollAnimation(
     });
   }
 
-  // Services: empieza a revelarse al 60% del vuelo del hacha (About → Services)
-  revealSection('services-section', t_S2 + dur_S2toS3 * 0.60, t_S3 + dur_S2toS3 * 0.20, true);
+  // Services (S2): reveal cuando la katana está en S2_ABOUT, sincronizado
+  revealSection('services-section', t_S2 + dur_S2toS3 * 0.20, t_S2 + dur_S2toS3 * 0.70, true);
 
-  // Stack: empieza a revelarse al 60% del vuelo del hacha (Services → Stack)
-  revealSection('stack-section', t_S3 + dur_S3toS4 * 0.60, t_S4 + dur_S3toS4 * 0.20, false);
+  // Stack (S4): no tocar según instrucción del usuario
 
   // ─── Observador de resize ─────────────────────────────────────────────────
   const observer = new ResizeObserver(() => ScrollTrigger.refresh());
