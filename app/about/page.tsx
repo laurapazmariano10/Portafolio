@@ -1,12 +1,13 @@
 'use client';
 
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { Hand } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
 import { ContactAndFooter } from '@/components/ContactAndFooter';
+import gsap from 'gsap';
 
 const AboutAxe = dynamic(() => import('@/components/AboutAxe/AboutAxe'), {
   ssr: false,
@@ -15,22 +16,27 @@ const AboutAxe = dynamic(() => import('@/components/AboutAxe/AboutAxe'), {
 const SERVICES = [
   {
     label: 'Diseño web',
+    image: '/imgPequesWebp/1.webp',
     items: ['Diseño web adaptable', 'Landing pages optimizadas', 'Sitios rápidos, claros y fáciles de navegar', 'Mantenimiento y mejoras del sitio web'],
   },
   {
     label: 'UI / UX',
+    image: '/imgPequesWebp/2.webp',
     items: ['Diseño de interfaces para web y apps', 'Estructura de pantallas y flujos', 'Prototipos claros para validar ideas', 'Microinteracciones y experiencia visual'],
   },
   {
     label: 'Branding',
+    image: '/imgPequesWebp/3.webp',
     items: ['Dirección visual de marca', 'Paleta de color y estilo gráfico', 'Piezas visuales para redes y campañas', 'Aplicaciones digitales de identidad'],
   },
   {
     label: 'Creador de contenido',
+    image: '/imgPequesWebp/4.webp',
     items: ['Contenido visual para redes', 'Piezas para lanzamientos y campañas', 'Edición y adaptación de formatos', 'Narrativa visual para comunicar mejor'],
   },
   {
     label: 'Software a medida',
+    image: '/imgPequesWebp/5.webp',
     items: ['Aplicaciones web a medida', 'Paneles y sistemas internos', 'Automatización de procesos', 'Soluciones funcionales para tu operación'],
   },
 ];
@@ -68,10 +74,9 @@ const STACK_GROUPS = [
     items: [
       ['WebGL', 'webgl', 'Gráficos interactivos directamente en navegador.'],
       ['Three.js', 'threedotjs', 'Escenas 3D y experiencias visuales inmersivas.'],
-      ['Spline', 'spline', 'Modelado 3D interactivo para web.'],
       ['Blender', 'blender', 'Visuales 3D, renders y composición creativa.'],
       ['Photoshop', 'adobephotoshop', 'Edición visual y retoque básico.'],
-      ['CapCut', 'capcut', 'Edición rápida de video y contenido social.'],
+      ['Figma', 'figma', 'Diseño colaborativo de interfaces modernas.'],
       ['Framer', 'framer', 'Prototipos y sitios interactivos con buen ritmo.'],
       ['Webflow', 'webflow', 'Sitios visuales con control fino de diseño.'],
     ],
@@ -80,9 +85,9 @@ const STACK_GROUPS = [
     title: 'Producto y operación',
     items: [
       ['Stripe', 'stripe', 'Pagos digitales y monetización de productos.'],
-      ['Office 365', 'microsoft365', 'Documentación, colaboración y organización.'],
-      ['IA', 'openai', 'Automatización, apoyo creativo y flujos inteligentes.'],
-      ['Y más', 'sparkpost', 'Siempre explorando nuevas herramientas útiles.'],
+      ['GitHub', 'github', 'Control de versiones y colaboración de código.'],
+      ['OpenAI', 'openai', 'Automatización, apoyo creativo y flujos inteligentes.'],
+      ['Vercel', 'vercel', 'Despliegue rápido y entrega global de aplicaciones.'],
     ],
   },
 ];
@@ -107,6 +112,31 @@ function SimpleIcon({ slug, name }: { slug: string; name: string }) {
 export default function AboutSection() {
   const [activeServiceIndex, setActiveServiceIndex] = useState(-1);
   const aboutWrapperRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const previewImgRef = useRef<HTMLImageElement>(null);
+  const [activePreviewImage, setActivePreviewImage] = useState('/imgPequesWebp/1.webp');
+
+  const showPreview = useCallback((service: typeof SERVICES[number], event: React.MouseEvent) => {
+    setActivePreviewImage(service.image);
+    const el = previewRef.current;
+    const img = previewImgRef.current;
+    if (!el || !img) return;
+    img.src = service.image;
+    img.style.display = 'block';
+    gsap.to(el, { x: event.clientX + 22, y: event.clientY - 36, autoAlpha: 1, scale: 1, duration: 0.18, ease: 'power2.out' });
+  }, []);
+
+  const movePreview = useCallback((event: React.MouseEvent) => {
+    const el = previewRef.current;
+    if (!el) return;
+    gsap.to(el, { x: event.clientX + 22, y: event.clientY - 36, duration: 0.18, ease: 'power2.out' });
+  }, []);
+
+  const hidePreview = useCallback(() => {
+    const el = previewRef.current;
+    if (!el) return;
+    gsap.to(el, { autoAlpha: 0, scale: 0.92, duration: 0.16, ease: 'power2.out' });
+  }, []);
 
   useLayoutEffect(() => {
     if (typeof window === 'undefined') return;
@@ -171,7 +201,7 @@ export default function AboutSection() {
             className="relative h-full w-full overflow-hidden rounded-[24px] border border-black/5 bg-[#E8E8E8] shadow-[0_20px_60px_rgba(0,0,0,0.12)]"
           >
             <Image
-              src="/Persona.jpeg"
+              src="/Persona.webp"
               alt="Mariano Laura"
               fill
               className="object-cover"
@@ -230,6 +260,9 @@ export default function AboutSection() {
                       type="button"
                       aria-expanded={isOpen}
                       onClick={() => setActiveServiceIndex(isOpen ? -1 : index)}
+                      onMouseEnter={(event) => showPreview(service, event)}
+                      onMouseMove={movePreview}
+                      onMouseLeave={hidePreview}
                       className={`flex w-full items-center justify-between gap-6 py-5 text-left font-[family-name:var(--font-antonio)] text-[clamp(1.5rem,1.8vw,1.625rem)] font-normal uppercase leading-[1.3] transition-colors duration-300 ${isOpen ? 'text-[#6872F2]' : 'text-[#303030] hover:text-[#6872F2]'}`}
                     >
                       <span>
@@ -323,7 +356,7 @@ export default function AboutSection() {
             </div>
             
             <div className="rounded-[24px] bg-[#ececec] overflow-hidden min-h-[380px] relative">
-               <Image src="/Setup.png" alt="Setup" fill className="object-cover" />
+               <Image src="/imgAcercadeWebp/1ro.webp" alt="Estrategia y Creación" fill className="object-cover" />
             </div>
 
             <div className="rounded-[24px] bg-[#6872F2] p-10 text-white flex flex-col justify-between min-h-[380px]">
@@ -338,7 +371,7 @@ export default function AboutSection() {
 
             {/* Fila 2 */}
             <div className="rounded-[24px] bg-[#ececec] overflow-hidden min-h-[380px] relative">
-               <Image src="/Persona.jpeg" alt="Persona" fill className="object-cover" />
+               <Image src="/imgAcercadeWebp/2do.webp" alt="Concepto e Ideación" fill className="object-cover" />
             </div>
 
             <div className="rounded-[24px] bg-[#f3f3f4] p-10 text-[#303030] flex flex-col justify-between min-h-[380px] md:col-span-2">
@@ -373,7 +406,7 @@ export default function AboutSection() {
             </div>
 
             <div className="rounded-[24px] bg-[#ececec] overflow-hidden min-h-[380px] relative">
-               <Image src="/Setup.png" alt="Setup" fill className="object-cover" />
+               <Image src="/imgAcercadeWebp/3ro.webp" alt="Lanzamiento y Entrega" fill className="object-cover" />
             </div>
 
           </div>
@@ -383,6 +416,17 @@ export default function AboutSection() {
       </div>{/* end about-wrapper */}
 
       <ContactAndFooter />
+
+      {/* Cursor-follow preview for services */}
+      <div ref={previewRef} className="pointer-events-none fixed left-0 top-0 z-[80] h-24 w-36 overflow-hidden rounded-2xl border border-white/60 bg-[#e8e8e8] opacity-0 shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          ref={previewImgRef}
+          src={activePreviewImage}
+          alt=""
+          className="h-full w-full object-cover"
+        />
+      </div>
     </main>
   );
 }

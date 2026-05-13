@@ -43,7 +43,7 @@ export function ContactAndFooter() {
         <div className="relative h-[448px] w-[320px] overflow-visible rounded-[28px] bg-[#ededed] shadow-[0_24px_70px_rgba(48,48,48,0.12)]">
           <div className="h-full w-full overflow-hidden rounded-[28px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/Persona.jpeg" alt="Mariano Laura" className="h-full w-full object-cover" />
+            <img src="/Persona.webp" alt="Mariano Laura" className="h-full w-full object-cover" />
           </div>
           <div className="absolute -bottom-9 -left-9 grid h-28 w-28 place-items-center rounded-full bg-[#6872F2] text-white shadow-[0_22px_58px_rgba(104,114,242,0.24)]">
             <Hand className="h-12 w-12 animate-wave-hand" strokeWidth={2.2} />
@@ -98,7 +98,7 @@ export function ContactAndFooter() {
         </div>
       </section>
 
-      <footer className="relative mt-10 overflow-hidden bg-[linear-gradient(180deg,#8f95ff_0%,#7780fb_34%,#6872F2_72%,#5058d9_100%)] px-6 py-11 text-white md:px-14 lg:px-20" suppressHydrationWarning>
+      <footer className="relative overflow-hidden bg-[linear-gradient(180deg,#8f95ff_0%,#7780fb_34%,#6872F2_72%,#5058d9_100%)] px-6 py-11 text-white md:px-14 lg:px-20" suppressHydrationWarning>
         <div className="footer-living-lines pointer-events-none absolute inset-0 opacity-35" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.22),transparent_34%)]" />
         <div className="relative mx-auto max-w-[1120px]" suppressHydrationWarning>
@@ -131,5 +131,42 @@ export function ContactAndFooter() {
         </div>
       </footer>
     </>
+  );
+}
+
+export function FooterOnly() {
+  return (
+    <footer className="relative overflow-hidden bg-[linear-gradient(180deg,#8f95ff_0%,#7780fb_34%,#6872F2_72%,#5058d9_100%)] px-6 py-11 text-white md:px-14 lg:px-20" suppressHydrationWarning>
+      <div className="footer-living-lines pointer-events-none absolute inset-0 opacity-35" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.22),transparent_34%)]" />
+      <div className="relative mx-auto max-w-[1120px]" suppressHydrationWarning>
+        <div className="grid gap-10 md:grid-cols-3 md:items-center" suppressHydrationWarning>
+          <div suppressHydrationWarning>
+            <p className="body-small text-white/76">Correo electrónico:</p>
+            <a href="mailto:laurapazmariano652@gmail.com" className="body-medium-bold mt-2 block text-white">
+              laurapazmariano652@gmail.com
+            </a>
+          </div>
+
+          <div className="text-center" suppressHydrationWarning>
+            <h2 className="text-[clamp(2rem,3vw,3.2rem)] font-bold uppercase leading-[1.3] tracking-normal">
+              ¿Listo para trabajar juntos?
+            </h2>
+            <a href="#contact" className="mt-5 inline-flex h-11 items-center justify-center rounded-full border border-white/90 px-7 text-base font-bold uppercase tracking-normal text-white transition-all duration-300 hover:bg-white hover:text-[#6872F2]">
+              ¡Contáctame ya!
+            </a>
+          </div>
+
+          <div className="flex justify-center md:justify-end" suppressHydrationWarning>
+            <SignatureSVG color="#FFFFFF" className="h-auto w-[220px] md:w-[270px]" />
+          </div>
+        </div>
+
+        <div className="body-small mt-10 border-t border-white/24 pt-6 text-white/78 md:flex md:items-center md:justify-between" suppressHydrationWarning>
+          <p>© Copyright 2026. Todos los derechos reservados por Mariano Laura.</p>
+          <p className="mt-3 md:mt-0">Creado por: Mariano Laura</p>
+        </div>
+      </div>
+    </footer>
   );
 }

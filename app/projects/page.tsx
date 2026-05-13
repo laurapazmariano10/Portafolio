@@ -7,7 +7,6 @@ import gsap from 'gsap';
 import ScrollTrigger from 'gsap/dist/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { Navbar } from '@/components/navbar';
-import { ContactAndFooter } from '@/components/ContactAndFooter';
 import MathFluidParticles from '@/components/projects/MathFluidParticles';
 import ProjectDepthCard from '@/components/projects/ProjectDepthCard';
 import { PROJECTS } from '@/components/projects/projectsData';
@@ -19,6 +18,7 @@ export default function ProjectsPage() {
   const rootRef = useRef<HTMLElement>(null);
   const cardRefs = useRef<Array<HTMLElement | null>>([]);
   const transitionRef = useRef<HTMLDivElement>(null);
+  const colorOverlayRef = useRef<HTMLDivElement>(null);
   const isTransitioningRef = useRef(false);
 
   useGSAP(
@@ -85,7 +85,8 @@ export default function ProjectsPage() {
       return;
     }
     const overlay = transitionRef.current;
-    if (!overlay) return;
+    const colorOverlay = colorOverlayRef.current;
+    if (!overlay || !colorOverlay) return;
 
     event.preventDefault();
     const card = event.currentTarget.querySelector('.project-depth-card');
@@ -97,53 +98,62 @@ export default function ProjectsPage() {
 
     isTransitioningRef.current = true;
 
-    gsap.killTweensOf(overlay);
+    // Set initial state matching the card exactly
     gsap.set(overlay, {
       autoAlpha: 1,
       x: rect.left,
       y: rect.top,
       width: rect.width,
       height: rect.height,
-      borderRadius: 30,
-      backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.08), rgba(0,0,0,0.24)), url(${project.cover})`,
+      borderRadius: 28,
+      backgroundImage: `url(${project.cover})`,
       backgroundPosition: 'center',
       backgroundSize: 'cover',
       filter: 'blur(0px)',
       scale: 1,
     });
+    
+    // Color overlay sits on top of the image inside the transition overlay container
+    // We will fade this in to mask the image seamlessly
+    gsap.set(colorOverlay, {
+      autoAlpha: 0,
+      background: project.gradient,
+    });
 
-    gsap.timeline({
-      defaults: { ease: 'power4.inOut' },
-      onComplete: () => router.push(`/projects/${project.slug}`),
+    const tl = gsap.timeline();
+
+    // 1. Zoom image to fill screen
+    tl.to(overlay, {
+      x: 0,
+      y: 0,
+      width: window.innerWidth,
+      height: window.innerHeight,
+      borderRadius: 0,
+      duration: 0.8,
+      ease: 'power4.inOut',
     })
-      .to(overlay, {
-        x: 0,
-        y: 0,
-        width: window.innerWidth,
-        height: window.innerHeight,
-        borderRadius: 0,
-        duration: 0.82,
-      })
-      .to(overlay, {
-        scale: 1.08,
-        filter: 'blur(10px)',
-        duration: 0.32,
-        ease: 'power2.in',
-      }, '-=0.22')
-      .to(overlay, {
-        backgroundImage: project.gradient,
-        duration: 0.32,
-        ease: 'power2.inOut',
-      }, '-=0.32');
+    // 2. Once it's filling the screen, crossfade to the solid gradient of the next page
+    .to(colorOverlay, {
+      autoAlpha: 1,
+      duration: 0.4,
+      ease: 'power2.inOut',
+      onStart: () => {
+        // Start Next.js navigation early so the data loads exactly during the color fade
+        // By the time it navigates, the screen is already matching the next page's background
+        router.push(`/projects/${project.slug}`);
+      }
+    }, '-=0.35');
   };
 
   return (
     <main ref={rootRef} className="min-h-screen bg-white text-[#111]">
-      <div ref={transitionRef} className="pointer-events-none fixed left-0 top-0 z-[120] opacity-0 will-change-transform" />
+      <div ref={transitionRef} className="pointer-events-none fixed left-0 top-0 z-[120] opacity-0 overflow-hidden will-change-transform">
+        <div ref={colorOverlayRef} className="absolute inset-0 z-10 opacity-0" />
+      </div>
       <Navbar />
       <section className="mx-auto max-w-[1180px] px-6 pb-24 pt-[18vh] md:px-10">
         <div className="mb-16">
-          <h1 data-projects-title className="font-[family-name:var(--font-antonio)] text-[clamp(5rem,13vw,13rem)] font-bold uppercase leading-[0.78] tracking-[-0.055em] text-[#303030]">
+          <h1 data-projects-title className="font-[family-name:var(--font-antonio)] text-[clamp(4.5rem,11vw,11rem)] font-bold uppercase leading-[0.92] tracking-[-0.04em] text-[#303030]">
             Proyectos Destacados
           </h1>
           <p data-projects-intro className="mt-7 max-w-[540px] font-[family-name:var(--font-sans)] text-[clamp(0.95rem,1.2vw,1.12rem)] font-light leading-[1.48] text-[#303030]/62">
@@ -160,8 +170,14 @@ export default function ProjectsPage() {
               }}
               className="group project-card-reveal"
             >
-              <Link href={`/projects/${project.slug}`} className="block outline-none" onClick={(event) => handleProjectClick(event, project)}>
-                <ProjectDepthCard cover={project.cover} depthMap={project.depthMap} title={project.title} />
+              <Link prefetch={true} href={`/projects/${project.slug}`} className="block outline-none" onClick={(event) => handleProjectClick(event, project)}>
+                <ProjectDepthCard 
+                  cover={project.cover} 
+                  depthMap={project.depthMap} 
+                  title={project.title}
+                  invertDepth={project.invertDepth}
+                  strength={project.slug === 'pisky' ? 0.007 : project.slug === 'zygo-app' ? 0.003 : 0.035}
+                />
                 <div className="mt-7 font-[family-name:var(--font-antonio)] text-[#111]">
                   <p className="text-[clamp(1rem,1.5vw,1.35rem)] font-normal uppercase leading-none tracking-[-0.015em] text-[#111]/85">
                     {project.tags.join(' · ')}
@@ -177,7 +193,6 @@ export default function ProjectsPage() {
       </section>
 
       <MathFluidParticles />
-      <ContactAndFooter />
     </main>
   );
 }

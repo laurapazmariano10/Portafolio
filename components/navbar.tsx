@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -9,13 +9,14 @@ import { useEffect, useRef, useState } from 'react';
 export function Navbar() {
   const pathname = usePathname();
   const [isWorkStatus, setIsWorkStatus] = useState(false);
+  const [dotPulse, setDotPulse] = useState(false);
   const lastScrollYRef = useRef(0);
   const lastIntentYRef = useRef(0);
   const navItems = [
     { name: 'Inicio', path: '/' },
     { name: 'Acerca de', path: '/about' },
     { name: 'Proyectos', path: '/projects' },
-    { name: 'Blog', path: '/#blog' },
+    { name: 'Blog', path: '/blog' },
   ];
 
   useEffect(() => {
@@ -54,6 +55,15 @@ export function Navbar() {
     };
   }, [pathname]);
 
+  // LED pulse effect when switching to work status
+  useEffect(() => {
+    if (isWorkStatus) {
+      setDotPulse(true);
+      const timer = setTimeout(() => setDotPulse(false), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isWorkStatus]);
+
   return (
     <motion.nav 
       initial={{ y: -20, opacity: 0 }}
@@ -63,7 +73,7 @@ export function Navbar() {
     >
       <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-[#EAEAEA] ml-1">
         <Image 
-          src="/Persona.jpeg" 
+          src="/Persona.webp" 
           alt="Avatar" 
           width={36} 
           height={36} 
@@ -72,42 +82,69 @@ export function Navbar() {
         />
       </div>
 
-      {isWorkStatus ? (
-        <Link href="/#contact" className="group flex flex-1 items-center justify-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#1d1d1b]/65 transition-colors duration-300 hover:text-[#6872F2]">
-          Disponible para trabajar
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 transition-transform duration-300 group-hover:scale-[1.45]" />
-        </Link>
-      ) : (
-        <>
-      
-          <div className="hidden sm:flex flex-row items-center justify-center flex-1 gap-6">
-            {navItems.map((item) => {
-              const isActive = pathname === item.path || (item.path === '/projects' && pathname.startsWith('/projects/'));
-              return (
-                <motion.div
-                  key={item.name}
-                  whileHover={{ y: -1 }}
-                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                >
-                  <Link
-                    href={item.path}
-                    className={`nav-3d-link font-sans text-[14px] ${isActive ? 'font-normal text-[#000]' : 'font-light text-[#555]'}`}
+      <AnimatePresence mode="wait" initial={false}>
+        {isWorkStatus ? (
+          <motion.div
+            key="work-status"
+            initial={{ opacity: 0, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, filter: 'blur(6px)' }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-1 items-center justify-center"
+          >
+            <Link href={pathname === '/' ? '/#contact' : '/contacto'} className="group flex items-center justify-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#1d1d1b]/65 transition-colors duration-300 hover:text-[#6872F2]">
+              Disponible para trabajar
+              <span 
+                className={`h-1.5 w-1.5 rounded-full transition-all duration-300 group-hover:scale-[1.45] ${
+                  dotPulse 
+                    ? 'bg-emerald-400 shadow-[0_0_8px_2px_rgba(52,211,153,0.7),0_0_16px_4px_rgba(52,211,153,0.3)] scale-[1.3]' 
+                    : 'bg-emerald-400/70'
+                }`}
+              />
+            </Link>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="nav-links"
+            initial={{ opacity: 0, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, filter: 'blur(6px)' }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-1 items-center justify-between"
+          >
+            <div className="hidden sm:flex flex-row items-center justify-center flex-1 gap-6">
+              {navItems.map((item) => {
+                const isActive = pathname === item.path || (item.path === '/projects' && pathname.startsWith('/projects/'));
+                return (
+                  <motion.div
+                    key={item.name}
+                    whileHover={{ y: -1 }}
+                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <span className="nav-3d-link__inner">
-                      <span className="nav-3d-link__front">{item.name}</span>
-                      <span className="nav-3d-link__back">{item.name}</span>
-                    </span>
-                  </Link>
-                </motion.div>
-              );
-            })}
-          </div>
+                    <Link
+                      href={item.path}
+                      className={`nav-3d-link font-sans text-[14px] whitespace-nowrap ${isActive ? 'font-normal text-[#000]' : 'font-light text-[#555]'}`}
+                    >
+                      <span className="nav-3d-link__inner">
+                        <span className="nav-3d-link__front">{item.name}</span>
+                        <span className="nav-3d-link__back">{item.name}</span>
+                      </span>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
 
-          <Link href="/#contact" className="rounded-full bg-[#222] text-[#FFF] text-[14px] font-medium h-[36px] px-5 mr-[2px] flex items-center justify-center transition-all duration-300 hover:bg-[#6872F2] hover:shadow-[0_10px_26px_rgba(104,114,242,0.28)] shrink-0">
-            Contacto
-          </Link>
-        </>
-      )}
+            <Link 
+              href={pathname === '/' ? '/#contact' : '/contacto'} 
+              className="group relative rounded-full bg-[#222] text-[#FFF] text-[14px] font-medium h-[36px] px-5 mr-[2px] flex items-center justify-center overflow-hidden transition-all duration-400 hover:shadow-[0_10px_26px_rgba(104,114,242,0.28)] shrink-0"
+            >
+              <span className="absolute inset-0 bg-[#6872F2] rounded-full scale-0 group-hover:scale-100 transition-transform duration-400 ease-out origin-center" />
+              <span className="relative z-10">Contacto</span>
+            </Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.nav>
   );
 }

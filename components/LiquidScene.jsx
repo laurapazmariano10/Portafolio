@@ -304,7 +304,7 @@ const fragmentLiquid = `
 function SceneContent({ isGlobalRevealed, onTrailUpdate, onReady, sceneProgressOverride, backgroundOnly = false }) {
     const { size, viewport } = useThree();
 
-    const [texBase, texReveal, texDepth, texDepthHero, texScan] = useTexture(["/Sujeto.png", "/Hero.png", "/DepthMap.png", "/DepthMapHero.png", "/Scaneo2.png"]);
+    const [texBase, texReveal, texDepth, texDepthHero, texScan] = useTexture(["/Sujeto.webp", "/Hero.webp", "/DepthMap.webp", "/DepthMapHero.webp", "/Scaneo2.webp"]);
 
     const bgRef = useRef(null);
     const liquidRef = useRef(null);

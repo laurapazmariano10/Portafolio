@@ -403,7 +403,7 @@ export default function Home() {
 
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
             <Image
-              src="/Scaneo2.png"
+              src="/Scaneo2.webp"
               alt=""
               fill
               className="object-cover opacity-50 group-hover:opacity-70 transition-opacity duration-700 pointer-events-none scale-110"

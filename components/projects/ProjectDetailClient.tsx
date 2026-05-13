@@ -88,20 +88,20 @@ export default function ProjectDetailClient({ project }: ProjectDetailClientProp
     <main ref={rootRef} className="min-h-screen overflow-hidden text-white" style={{ background: project.gradient }}>
       <div className="pointer-events-none fixed inset-0 z-0 opacity-60" style={{ background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.18), transparent 34%)' }} />
       <div ref={trackRef} className="relative z-10 flex h-screen w-max items-center gap-[210px] px-[clamp(2rem,7vw,6rem)] py-10 will-change-transform">
-        <section className="grid h-[calc(100vh-5rem)] w-[min(960px,88vw)] shrink-0 grid-cols-1 content-center gap-10 md:grid-cols-[minmax(0,1fr)_230px] md:gap-16">
+        <section className="grid h-[calc(100vh-5rem)] w-[min(960px,88vw)] shrink-0 grid-cols-1 content-start pt-[18vh] gap-10 md:grid-cols-[minmax(0,1fr)_230px] md:gap-16">
           <div>
-            <div data-detail-intro className="mb-[12vh] w-[220px] md:w-[300px]">
+            <div data-detail-intro className="mb-[8vh] w-[220px] md:w-[300px]">
               <SignatureSVG color={project.slug === 'qualitiktok' ? '#FFFFFF' : '#111111'} className="h-auto w-full" />
             </div>
             <h1 data-detail-intro className={`font-[family-name:var(--font-antonio)] text-[clamp(5rem,12vw,10rem)] font-normal uppercase leading-[0.82] tracking-[-0.06em] ${project.slug === 'qualitiktok' ? 'text-white' : 'text-[#111]'}`}>
               {project.title}
             </h1>
-            <p data-detail-intro className={`mt-8 max-w-[500px] font-[family-name:var(--font-sans)] text-[10.5px] font-semibold leading-[1.6] tracking-[-0.01em] ${project.slug === 'qualitiktok' ? 'text-white/82' : 'text-[#111]/78'}`}>
+            <p data-detail-intro className={`mt-8 max-w-[500px] font-[family-name:var(--font-sans)] text-[11.5px] font-semibold leading-[1.6] tracking-[-0.01em] ${project.slug === 'qualitiktok' ? 'text-white/82' : 'text-[#111]/78'}`}>
               {project.description}
             </p>
           </div>
 
-          <aside data-detail-intro className={`self-center font-[family-name:var(--font-sans)] ${project.slug === 'qualitiktok' ? 'text-white' : 'text-[#111]'}`}>
+          <aside data-detail-intro className={`self-start pt-[4vh] font-[family-name:var(--font-sans)] ${project.slug === 'qualitiktok' ? 'text-white' : 'text-[#111]'}`}>
             <p className="mb-5 text-[0.72rem] font-semibold uppercase tracking-[0.22em] opacity-62">Servicio:</p>
             <ul className="space-y-2 text-[0.98rem] font-semibold leading-[1.1]">
               {project.services.map((service) => (

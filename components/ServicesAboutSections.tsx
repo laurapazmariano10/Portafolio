@@ -7,33 +7,34 @@ import { useGSAP } from '@gsap/react';
 import SignatureSVG from '@/components/SignatureSVG';
 import { ContactAndFooter } from '@/components/ContactAndFooter';
 import { Hand } from 'lucide-react';
+import Link from 'next/link';
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 const SERVICES = [
   {
     label: 'Diseño web',
-    image: '/Setup.png',
+    image: '/imgPequesWebp/1.webp',
     items: ['Diseño web adaptable', 'Landing pages optimizadas', 'Sitios rápidos, claros y fáciles de navegar', 'Mantenimiento y mejoras del sitio web'],
   },
   {
     label: 'UI / UX',
-    image: '/Persona.jpeg',
+    image: '/imgPequesWebp/2.webp',
     items: ['Diseño de interfaces para web y apps', 'Estructura de pantallas y flujos', 'Prototipos claros para validar ideas', 'Microinteracciones y experiencia visual'],
   },
   {
     label: 'Branding',
-    image: '/Setup.png',
+    image: '/imgPequesWebp/3.webp',
     items: ['Dirección visual de marca', 'Paleta de color y estilo gráfico', 'Piezas visuales para redes y campañas', 'Aplicaciones digitales de identidad'],
   },
   {
     label: 'Creador de contenido',
-    image: '/Persona.jpeg',
+    image: '/imgPequesWebp/4.webp',
     items: ['Contenido visual para redes', 'Piezas para lanzamientos y campañas', 'Edición y adaptación de formatos', 'Narrativa visual para comunicar mejor'],
   },
   {
     label: 'Software a medida',
-    image: '/Setup.png',
+    image: '/imgPequesWebp/5.webp',
     items: ['Aplicaciones web a medida', 'Paneles y sistemas internos', 'Automatización de procesos', 'Soluciones funcionales para tu operación'],
   },
 ];
@@ -43,21 +44,25 @@ const PROJECTS = [
     title: 'Zygo web',
     description: 'Página web moderna y a medida para una cadena de consultorios especializados en la mujer.',
     tag: 'Web a medida',
+    image: '/imgProyectosWebp/zygoWebWebp/PortadaW.webp',
   },
   {
     title: 'ApiSky',
     description: 'Sistema de mensajería masiva por WhatsApp para una empresa de turismo.',
     tag: 'Automatización',
+    image: '/imgProyectosWebp/piskyWebp/PortadaP.webp',
   },
   {
     title: 'Qualitiktok',
     description: 'Software de escritorio que exporta tus videos con los valores óptimos para que TikTok no los recomprima con pérdida.',
     tag: 'Software desktop',
+    image: '/imgProyectosWebp/qualitiktokWebp/portada.webp',
   },
   {
     title: 'MediRecord',
     description: 'Sistema de gestión clínica con registro de pacientes, historiales médicos, control de citas y administración por roles.',
     tag: 'Sistema clínico',
+    image: '/imgProyectosWebp/zygoAppWebp/PortadaZP.webp',
   },
 ];
 
@@ -90,18 +95,18 @@ const FAQS = [
 
 const BLOG_POSTS = [
   {
-    title: '5 tendencias de diseño que definirán el 2024',
-    description: 'Descubre las principales tendencias de diseño que influyen en proyectos web, interfaces y marcas con una mirada actual.',
-    category: 'Perspectivas',
-    date: '30 de abril de 2025',
-    image: '/Setup.png',
-  },
-  {
-    title: 'Cómo optimizar tu flujo de trabajo de diseño',
-    description: 'Ideas prácticas para organizar mejor tu proceso creativo, ahorrar tiempo y entregar una experiencia más cuidada.',
+    title: 'El futuro de la Inteligencia Artificial en el desarrollo de software',
+    description: 'La era de escribir código de forma manual está llegando a su fin. Descubre cómo los agentes autónomos no solo están acelerando la producción, sino redefiniendo lo que significa ser ingeniero.',
     category: 'Tutoriales',
     date: '27 de abril de 2025',
-    image: '/Persona.jpeg',
+    image: '/imgBlogsWebp/EL FUTURO DE LA INTELIGENCIA ARTIFICIAL/portada.webp',
+  },
+  {
+    title: 'Computación Cuántica: ¿Estamos cerca de la supremacía?',
+    description: 'Olvida todo lo que sabes sobre unos y ceros. La revolución cuántica no es solo una actualización de hardware, es un salto hacia una nueva dimensión de posibilidades físicas y matemáticas.',
+    category: 'Perspectivas',
+    date: '30 de abril de 2025',
+    image: '/imgBlogsWebp/ComputacionCuantica/portada.webp',
   },
 ];
 
@@ -485,10 +490,10 @@ export default function ServicesAboutSections() {
               <div ref={cardRef} className="relative h-[392px] w-[280px] md:h-[448px] md:w-[320px]" style={{ perspective: 1200 }}>
                 <div ref={cardInnerRef} className="relative h-full w-full [transform-style:preserve-3d]">
                   <div className="absolute inset-0 overflow-hidden rounded-[28px] border border-black/10 bg-[#ededed] shadow-[0_28px_80px_rgba(0,0,0,0.16)] [backface-visibility:hidden]">
-                    <SmartImage src="/Setup.png" alt="Setup.png" className="h-full w-full object-cover" />
+                    <SmartImage src="/imgInicioWebp/setup.webp" alt="Setup" className="h-full w-full object-cover" />
                   </div>
                   <div className="absolute inset-0 overflow-hidden rounded-[28px] border border-black/10 bg-[#ededed] shadow-[0_28px_80px_rgba(0,0,0,0.16)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                    <SmartImage src="/Persona.jpeg" alt="Persona.jpeg" className="h-full w-full object-cover" />
+                    <SmartImage src="/Persona.webp" alt="Persona" className="h-full w-full object-cover" />
                   </div>
                 </div>
               </div>
@@ -518,8 +523,9 @@ export default function ServicesAboutSections() {
                   }}
                   className="absolute aspect-[1120/746.66] w-[min(1120px,calc(100vw-3rem))] max-h-[72vh] overflow-hidden rounded-[28px] border border-[#303030]/10 bg-[#101014] md:w-[min(1120px,calc(100vw-7rem))] lg:w-[min(1120px,calc(100vw-10rem))]"
                 >
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(104,114,242,0.38),transparent_30%),radial-gradient(circle_at_76%_42%,rgba(255,255,255,0.1),transparent_28%),linear-gradient(135deg,#101014_0%,#171827_45%,#0f0f12_100%)]" />
-                  <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(115deg,transparent_0%,rgba(255,255,255,0.1)_42%,transparent_62%)]" />
+                  {project.image && <SmartImage src={project.image} alt={project.title} className="absolute inset-0 h-full w-full object-cover" />}
+                  <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(16,16,20,0.72)_0%,rgba(23,24,39,0.58)_45%,rgba(15,15,18,0.78)_100%)]" />
+                  <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(115deg,transparent_0%,rgba(255,255,255,0.1)_42%,transparent_62%)]" />
                   <div className="relative flex h-full flex-col items-center justify-center px-8 text-center text-white">
                     <span className="body-small-bold mb-5 rounded-full bg-[#6872F2] px-4 py-1.5 text-white shadow-[0_10px_30px_rgba(104,114,242,0.32)]">
                       {project.tag}
@@ -594,51 +600,55 @@ export default function ServicesAboutSections() {
           </div>
 
           <div className="mt-12 grid gap-8 lg:grid-cols-2">
-            {BLOG_POSTS.map((post) => (
-              <article key={post.title} className="w-full max-w-[540px]">
-                <div className="h-[320px] overflow-hidden rounded-[22px] bg-[#ececec]">
-                  <SmartImage src={post.image} alt={post.title} className="h-full w-full object-cover" />
-                </div>
-                <div className="mt-5 flex items-center gap-4">
-                  <span className="body-small-bold rounded-full border border-[#6872F2]/55 px-4 py-1 text-[#6872F2]">
-                    {post.category}
-                  </span>
-                  <span className="body-small text-[#303030]/48">{post.date}</span>
-                </div>
-                <h3 className="mt-6 text-[clamp(1.65rem,2.2vw,2rem)] font-normal uppercase leading-[1.3] tracking-normal text-[#303030]">
-                  {post.title}
-                </h3>
-                <p className="body-small mt-5 text-[#303030]/62">
-                  {post.description}
-                </p>
-              </article>
+            {BLOG_POSTS.map((post, index) => (
+              <Link href={index === 0 ? '/blog/el-futuro-de-la-ia' : '/blog/computacion-cuantica'} key={post.title} className="group block outline-none">
+                <article className="w-full max-w-[540px]">
+                  <div className="h-[320px] overflow-hidden rounded-[22px] bg-[#ececec]">
+                    <div className="h-full w-full transition-transform duration-700 group-hover:scale-105">
+                      <SmartImage src={post.image} alt={post.title} className="h-full w-full object-cover" />
+                    </div>
+                  </div>
+                  <div className="mt-5 flex items-center gap-4">
+                    <span className="body-small-bold rounded-full border border-[#6872F2]/55 px-4 py-1 text-[#6872F2]">
+                      {post.category}
+                    </span>
+                    <span className="body-small text-[#303030]/48">{post.date}</span>
+                  </div>
+                  <h3 className="mt-4 font-[family-name:var(--font-antonio)] text-[clamp(1.7rem,2.5vw,2rem)] font-bold uppercase leading-[1.2] tracking-[0.02em] transition-colors duration-300">
+                    {post.title}
+                  </h3>
+                  <p className="body-small mt-5 text-[#303030]/62">
+                    {post.description}
+                  </p>
+                </article>
+              </Link>
             ))}
           </div>
 
           <div className="mt-14 flex justify-center">
-            <a href="#contact" className="inline-flex h-12 items-center justify-center rounded-full border border-[#6872F2] px-9 text-lg font-bold uppercase tracking-normal text-[#6872F2] transition-all duration-300 hover:bg-[#6872F2] hover:text-white">
+            <Link href="/blog" className="inline-flex h-12 items-center justify-center rounded-full border border-[#6872F2] px-9 text-lg font-bold uppercase tracking-normal text-[#6872F2] transition-all duration-300 hover:bg-[#6872F2] hover:text-white">
               Explorar todos los blogs
-            </a>
+            </Link>
           </div>
         </section>
+      </div>
 
-        <ContactAndFooter />
+      <ContactAndFooter />
 
-        <div ref={cursorPreviewRef} className="pointer-events-none fixed left-0 top-0 z-[80] h-24 w-36 overflow-hidden rounded-2xl border border-white/60 bg-[#e8e8e8] opacity-0 shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            ref={cursorImageRef}
-            src={activeService?.image ?? '/Setup.png'}
-            alt={activeService?.label ?? ''}
-            className="h-full w-full object-cover"
-            onError={(event) => {
-              event.currentTarget.style.display = 'none';
-              if (cursorFallbackRef.current) cursorFallbackRef.current.style.display = 'grid';
-            }}
-          />
-          <div ref={cursorFallbackRef} className="hidden h-full w-full place-items-center text-center text-[0.55rem] uppercase tracking-[0.18em] text-[#303030]/45">
-            Imagen pendiente
-          </div>
+      <div ref={cursorPreviewRef} className="pointer-events-none fixed left-0 top-0 z-[80] h-24 w-36 overflow-hidden rounded-2xl border border-white/60 bg-[#e8e8e8] opacity-0 shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          ref={cursorImageRef}
+          src={activeService?.image || undefined}
+          alt={activeService?.label ?? ''}
+          className="h-full w-full object-cover"
+          onError={(event) => {
+            event.currentTarget.style.display = 'none';
+            if (cursorFallbackRef.current) cursorFallbackRef.current.style.display = 'grid';
+          }}
+        />
+        <div ref={cursorFallbackRef} className="hidden h-full w-full place-items-center text-center text-[0.55rem] uppercase tracking-[0.18em] text-[#303030]/45">
+          Imagen pendiente
         </div>
       </div>
     </div>

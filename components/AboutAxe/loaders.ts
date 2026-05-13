@@ -13,7 +13,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 
 const KATANA_PATH = '/models/Katana_ThreeJS.glb';
-const TEX_BASE = '/Textures/';
+const TEX_BASE = '/TexturesWebp/';
 
 // ─── TEXTURAS REALES (revisadas visualmente) ─────────────────────────────
 // Katana Blade.png  = gris plateado (filo)
@@ -23,11 +23,11 @@ const TEX_BASE = '/Textures/';
 // roughness.jpg     = mapa de rugosidad
 // handle-wrap.png   = referencia visual (no se usa como textura)
 const TEX_FILES = {
-  blade:       'Katana Blade.png',
-  blackCloth:  'wood.jpg',           // tela negra
-  redLeather:  'handle-base.jpg',    // cuero rojo
-  handleWrap:  'handle-wrap.png',    // envoltura del mango
-  roughness:   'roughness.jpg',
+  blade:       'Katana Blade.webp',
+  blackCloth:  'wood.webp',           // tela negra
+  redLeather:  'handle-base.webp',    // cuero rojo
+  handleWrap:  'handle-wrap.webp',    // envoltura del mango
+  roughness:   'roughness.webp',
 } as const;
 
 type TexKey = keyof typeof TEX_FILES;
