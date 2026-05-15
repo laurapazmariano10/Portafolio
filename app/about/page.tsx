@@ -86,13 +86,29 @@ const STACK_GROUPS = [
     items: [
       ['Stripe', 'stripe', 'Pagos digitales y monetización de productos.'],
       ['GitHub', 'github', 'Control de versiones y colaboración de código.'],
-      ['OpenAI', 'openai', 'Automatización, apoyo creativo y flujos inteligentes.'],
+      ['IA', 'openai', 'Amplio conocimiento sobre el uso de herramientas de inteligencia artificial para automatizar tareas, apoyar ideas y optimizar flujos.'],
       ['Vercel', 'vercel', 'Despliegue rápido y entrega global de aplicaciones.'],
     ],
   },
 ];
 
 function SimpleIcon({ slug, name }: { slug: string; name: string }) {
+  const [iconFailed, setIconFailed] = useState(false);
+  const fallbackLabel = name
+    .split(/\s+/)
+    .map((word) => word[0])
+    .join('')
+    .slice(0, 3)
+    .toUpperCase();
+
+  if (iconFailed) {
+    return (
+      <span className="font-[family-name:var(--font-antonio)] text-sm font-bold uppercase leading-none text-[#303030]/70" aria-hidden="true" title={name}>
+        {fallbackLabel}
+      </span>
+    );
+  }
+
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -102,6 +118,7 @@ function SimpleIcon({ slug, name }: { slug: string; name: string }) {
       loading="lazy"
       onError={(event) => {
         event.currentTarget.style.display = 'none';
+        setIconFailed(true);
       }}
       aria-hidden="true"
       title={name}
@@ -117,6 +134,7 @@ export default function AboutSection() {
   const [activePreviewImage, setActivePreviewImage] = useState('/imgPequesWebp/1.webp');
 
   const showPreview = useCallback((service: typeof SERVICES[number], event: React.MouseEvent) => {
+    if (window.matchMedia('(max-width: 1023px)').matches) return;
     setActivePreviewImage(service.image);
     const el = previewRef.current;
     const img = previewImgRef.current;
@@ -127,6 +145,7 @@ export default function AboutSection() {
   }, []);
 
   const movePreview = useCallback((event: React.MouseEvent) => {
+    if (window.matchMedia('(max-width: 1023px)').matches) return;
     const el = previewRef.current;
     if (!el) return;
     gsap.to(el, { x: event.clientX + 22, y: event.clientY - 36, duration: 0.18, ease: 'power2.out' });
@@ -154,10 +173,10 @@ export default function AboutSection() {
       <AboutAxe wrapperRef={aboutWrapperRef} />
 
       {/* Wrapper for ScrollTrigger to measure total scroll distance */}
-      <div ref={aboutWrapperRef}>
+      <div ref={aboutWrapperRef} className="relative z-10 lg:z-auto">
 
-      <section id="hero-section" className="relative flex h-[100dvh] min-h-[620px] w-full items-center justify-center" style={{ willChange: 'transform', transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}>
-        <div className="pointer-events-none absolute inset-0 z-0 flex select-none flex-row items-center justify-center">
+      <section id="hero-section" className="relative flex min-h-0 w-full items-center justify-center px-5 pb-8 pt-24 lg:h-[100dvh] lg:min-h-[620px] lg:px-0 lg:py-0" style={{ willChange: 'transform', transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}>
+        <div className="pointer-events-none absolute inset-0 z-0 hidden select-none flex-row items-center justify-center lg:flex">
           <motion.div
             initial={{ x: '10vw', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -193,7 +212,7 @@ export default function AboutSection() {
           </motion.div>
         </div>
 
-        <div className="relative z-10 h-[336px] w-[240px] sm:h-[392px] sm:w-[280px] md:h-[448px] md:w-[320px] lg:h-[476px] lg:w-[340px]">
+        <div className="relative z-10 h-[68vh] min-h-[460px] w-[calc(100vw-2.75rem)] max-w-[520px] sm:h-[70vh] md:h-[72vh] md:max-w-[600px] lg:h-[476px] lg:min-h-0 lg:w-[340px] lg:max-w-none">
           <motion.div
             initial={{ y: 80, opacity: 0, scale: 0.95 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -213,7 +232,7 @@ export default function AboutSection() {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', damping: 14, stiffness: 120, delay: 0.6 }}
-            className="absolute -bottom-6 -left-6 z-20 flex h-[72px] w-[72px] cursor-default items-center justify-center rounded-full bg-[#6872F2] text-white shadow-[0_12px_30px_rgba(104,114,242,0.28)] transition-transform hover:scale-105 md:-bottom-10 md:-left-10 md:h-[104px] md:w-[104px]"
+            className="absolute -bottom-6 -left-6 z-20 hidden h-[72px] w-[72px] cursor-default items-center justify-center rounded-full bg-[#6872F2] text-white shadow-[0_12px_30px_rgba(104,114,242,0.28)] transition-transform hover:scale-105 md:-bottom-10 md:-left-10 md:h-[104px] md:w-[104px] lg:flex"
           >
             <Hand className="h-8 w-8 animate-wave-hand md:h-11 md:w-11" strokeWidth={2.2} />
           </motion.div>
@@ -222,27 +241,32 @@ export default function AboutSection() {
 
       {/* Bio card removed — 3D axe fills this space */}
 
-      <section className="mx-auto flex w-full max-w-[1200px] flex-col px-6 py-24 md:px-10 lg:py-28">
+      <div className="h-28 w-full md:h-36 lg:hidden" aria-hidden="true" />
+
+      <section className="mx-auto flex w-full max-w-[1200px] flex-col px-6 py-0 md:px-10 lg:py-28">
         
         {/* Acerca de mí */}
-        <div id="about-me-section" className="grid grid-cols-1 items-start gap-14 md:grid-cols-[650px_1fr]">
+        <div id="about-me-section" className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[650px_1fr] lg:gap-14">
           <div className="w-full max-w-[650px]">
-            <h2 className="font-[family-name:var(--font-antonio)] text-[clamp(3rem,5vw,3.75rem)] font-bold uppercase leading-[1.3] tracking-normal text-[#303030]">
+            <h2 className="font-[family-name:var(--font-antonio)] text-[clamp(3rem,5vw,3.75rem)] font-bold uppercase leading-[1.08] tracking-normal text-[#303030] lg:leading-[1.3]">
               Acerca de mí
             </h2>
-            <p className="body-medium mt-6 text-[#303030]/80 text-lg md:text-xl leading-relaxed">
+            <p className="mt-3 font-[family-name:var(--font-antonio)] text-[1.5rem] font-normal uppercase leading-none tracking-normal text-[#303030] lg:hidden">
+              Mariano Laura
+            </p>
+            <p className="body-medium mt-5 text-base leading-relaxed text-[#303030]/80 md:text-lg lg:mt-6 lg:text-xl">
               Mi interés por la tecnología empezó desde muy temprano: desarrollé mi primera página web a los 12 años y, desde entonces, he estado construyendo soluciones digitales, desde sitios web hasta aplicaciones y sistemas. Soy una persona curiosa por naturaleza; no me atrae lo común, busco crear experiencias que destaquen con un equilibrio entre diseño, funcionalidad y detalle. Para mí, no se trata solo de que algo se vea bien, sino de que funcione, conecte y genere resultados reales; me enfoco en crear soluciones que aporten valor a las personas y a sus proyectos.
             </p>
           </div>
-          <div className="hidden min-h-[420px] md:block sticky top-1/2" aria-hidden="true" />
+          <div className="hidden min-h-[420px] lg:block sticky top-1/2" aria-hidden="true" />
         </div>
 
         {/* --- TRAMO DE SCROLL ARTIFICIAL PARA ANIMACIÓN 3D (WP_GAP_1) --- */}
-        <div className="h-[100vh] w-full" aria-hidden="true" />
+        <div className="h-28 w-full md:h-36 lg:h-[100vh]" aria-hidden="true" />
 
         {/* Lo que puedo hacer por ti */}
-        <div id="services-section" className="grid grid-cols-1 items-start gap-14 md:grid-cols-[1fr_650px]">
-          <div className="hidden min-h-[420px] md:block sticky top-1/2" aria-hidden="true" />
+        <div id="services-section" className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[1fr_650px] lg:gap-14">
+          <div className="hidden min-h-[420px] lg:block sticky top-1/2" aria-hidden="true" />
           <div className="w-full max-w-[650px] flex flex-col justify-center">
             <h2 className="font-[family-name:var(--font-antonio)] text-[clamp(3rem,5vw,3.75rem)] font-bold uppercase leading-[1.3] tracking-normal text-[#303030]">
               Lo que puedo hacer por ti
@@ -292,9 +316,9 @@ export default function AboutSection() {
       </section>
 
       {/* --- TRAMO DE SCROLL ARTIFICIAL PARA ANIMACIÓN 3D (WP_GAP_2) --- */}
-      <div className="h-[100vh] w-full" aria-hidden="true" />
+      <div className="h-28 w-full md:h-36 lg:h-[100vh]" aria-hidden="true" />
 
-      <section id="stack-section" className="bg-white px-6 py-28 text-[#303030] md:px-10">
+      <section id="stack-section" className="px-6 py-14 text-[#303030] md:px-10 lg:bg-white lg:py-28">
         <div className="mx-auto grid max-w-[1200px] gap-14 lg:grid-cols-[650px_1fr]">
           <div className="w-full max-w-[650px]">
             <h2 className="font-[family-name:var(--font-antonio)] text-[clamp(3rem,5vw,3.75rem)] font-bold uppercase leading-[1.3] tracking-normal text-[#303030]">
@@ -334,7 +358,9 @@ export default function AboutSection() {
         </div>
       </section>
 
-      <section className="bg-white px-6 py-28 text-[#303030] md:px-10">
+      <div className="h-28 w-full md:h-36 lg:hidden" aria-hidden="true" />
+
+      <section id="process-section" className="bg-white px-6 py-14 text-[#303030] md:px-10 lg:py-28">
         <div className="mx-auto max-w-[1120px]">
           <h2 className="font-[family-name:var(--font-antonio)] text-[clamp(3rem,5vw,3.75rem)] font-bold uppercase leading-[1.3] tracking-normal text-[#303030] text-center">
             Crear con estrategia y Creatividad
@@ -418,7 +444,7 @@ export default function AboutSection() {
       <ContactAndFooter />
 
       {/* Cursor-follow preview for services */}
-      <div ref={previewRef} className="pointer-events-none fixed left-0 top-0 z-[80] h-24 w-36 overflow-hidden rounded-2xl border border-white/60 bg-[#e8e8e8] opacity-0 shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
+      <div ref={previewRef} className="pointer-events-none fixed left-0 top-0 z-[80] hidden h-24 w-36 overflow-hidden rounded-2xl border border-white/60 bg-[#e8e8e8] opacity-0 shadow-[0_18px_42px_rgba(0,0,0,0.22)] lg:block">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           ref={previewImgRef}

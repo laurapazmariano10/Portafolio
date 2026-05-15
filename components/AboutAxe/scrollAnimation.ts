@@ -132,6 +132,116 @@ export function setupScrollAnimation(
   wrapper: HTMLElement,
   canvas: HTMLCanvasElement,
 ): () => void {
+  const isTouchLayout = window.matchMedia('(max-width: 1023px)').matches;
+
+  if (isTouchLayout) {
+    const mobileStart = {
+      pos: { x: 0.000, y: -0.900, z: -6.200 },
+      rot: { x: -2.900, y: -0.220, z: -0.950 },
+      scale: S(0.210),
+      camZ: 6.100,
+    };
+    const mobileServices = {
+      pos: { x: 0.000, y: -0.340, z: -5.750 },
+      rot: { x: -2.250, y: 0.550, z: -3.050 },
+      scale: S(0.245),
+      camZ: 5.850,
+    };
+    const mobileStack = {
+      pos: { x: 0.000, y: 0.120, z: -5.450 },
+      rot: { x: -1.650, y: 1.150, z: -5.650 },
+      scale: S(0.285),
+      camZ: 5.450,
+    };
+    const mobileStackFlow = {
+      pos: { x: 0.000, y: -0.220, z: -5.850 },
+      rot: { x: -2.950, y: 1.850, z: -8.550 },
+      scale: S(0.235),
+      camZ: 5.950,
+    };
+    const mobileStackExit = {
+      pos: { x: 0.000, y: 0.360, z: -6.100 },
+      rot: { x: -1.950, y: 2.450, z: -11.350 },
+      scale: S(0.210),
+      camZ: 6.100,
+    };
+
+    vaina.visible = false;
+    gsap.set(katana.position, mobileStart.pos);
+    gsap.set(katana.rotation, mobileStart.rot);
+    gsap.set(katana.scale, { x: mobileStart.scale, y: mobileStart.scale, z: mobileStart.scale });
+    gsap.set(camera.position, { x: 0, y: 0, z: mobileStart.camZ });
+    gsap.set(canvas, { filter: 'drop-shadow(0px 18px 24px rgba(0,0,0,0.24))', y: 0, opacity: 1 });
+
+    const stackEl = document.getElementById('stack-section');
+    const processEl = document.getElementById('process-section');
+    const contactEl = document.getElementById('contact');
+    const getTop = (el: HTMLElement | null): number => {
+      if (!el) return window.innerHeight * 2.4;
+      let offset = 0;
+      let node: HTMLElement | null = el;
+      while (node && node !== wrapper) {
+        offset += node.offsetTop;
+        node = node.offsetParent as HTMLElement | null;
+      }
+      return offset;
+    };
+
+    const stackTop = getTop(stackEl);
+    const processTop = getTop(processEl);
+    const endDistance = Math.max(processTop - window.innerHeight * 0.62, stackTop + window.innerHeight * 0.72);
+    const mobileTimeline = gsap.timeline({
+      scrollTrigger: {
+        trigger: wrapper,
+        start: 'top top',
+        end: () => `+=${endDistance}`,
+        scrub: 0.40,
+        invalidateOnRefresh: true,
+      },
+    });
+    const ctaHideTrigger = processEl
+      ? ScrollTrigger.create({
+          trigger: processEl,
+          start: 'bottom bottom',
+          onEnter: () => gsap.set(canvas, { opacity: 0, visibility: 'hidden' }),
+          onLeaveBack: () => gsap.set(canvas, { opacity: 1, visibility: 'visible' }),
+        })
+      : undefined;
+    const contactHideTrigger = contactEl
+      ? ScrollTrigger.create({
+          trigger: contactEl,
+          start: 'top bottom',
+          onEnter: () => gsap.set(canvas, { opacity: 0, visibility: 'hidden', display: 'none' }),
+          onLeaveBack: () => gsap.set(canvas, { opacity: 1, visibility: 'visible', display: 'block' }),
+        })
+      : undefined;
+
+    mobileTimeline
+      .to(katana.position, { ...mobileServices.pos, duration: 0.22, ease: 'none' }, 0)
+      .to(katana.rotation, { ...mobileServices.rot, duration: 0.22, ease: 'none' }, 0)
+      .to(katana.scale, { x: mobileServices.scale, y: mobileServices.scale, z: mobileServices.scale, duration: 0.22, ease: 'none' }, 0)
+      .to(camera.position, { z: mobileServices.camZ, duration: 0.22, ease: 'none' }, 0)
+      .to(katana.position, { ...mobileStack.pos, duration: 0.26, ease: 'none' }, 0.22)
+      .to(katana.rotation, { ...mobileStack.rot, duration: 0.26, ease: 'none' }, 0.22)
+      .to(katana.scale, { x: mobileStack.scale, y: mobileStack.scale, z: mobileStack.scale, duration: 0.26, ease: 'none' }, 0.22)
+      .to(camera.position, { z: mobileStack.camZ, duration: 0.26, ease: 'none' }, 0.22)
+      .to(katana.position, { ...mobileStackFlow.pos, duration: 0.28, ease: 'none' }, 0.48)
+      .to(katana.rotation, { ...mobileStackFlow.rot, duration: 0.28, ease: 'none' }, 0.48)
+      .to(katana.scale, { x: mobileStackFlow.scale, y: mobileStackFlow.scale, z: mobileStackFlow.scale, duration: 0.28, ease: 'none' }, 0.48)
+      .to(camera.position, { z: mobileStackFlow.camZ, duration: 0.28, ease: 'none' }, 0.48)
+      .to(katana.position, { ...mobileStackExit.pos, duration: 0.24, ease: 'none' }, 0.76)
+      .to(katana.rotation, { ...mobileStackExit.rot, duration: 0.24, ease: 'none' }, 0.76)
+      .to(katana.scale, { x: mobileStackExit.scale, y: mobileStackExit.scale, z: mobileStackExit.scale, duration: 0.24, ease: 'none' }, 0.76)
+      .to(camera.position, { z: mobileStackExit.camZ, duration: 0.24, ease: 'none' }, 0.76)
+      .to(canvas, { opacity: 0, duration: 0.16, ease: 'none' }, 0.84);
+
+    return () => {
+      contactHideTrigger?.kill();
+      ctaHideTrigger?.kill();
+      mobileTimeline.scrollTrigger?.kill();
+      mobileTimeline.kill();
+    };
+  }
 
   // ─── POSE INICIAL ─────────────────────────────────────────────────────────
   // Katana arranca PARCIALMENTE desenvainada (visualmente más alejada de la vaina).

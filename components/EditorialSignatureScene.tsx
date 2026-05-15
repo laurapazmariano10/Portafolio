@@ -18,11 +18,11 @@ const PHRASE_LINES = [
 ];
 
 const LINE_LAYOUT = [
-  'ml-[1vw] rotate-[-1.4deg] text-[clamp(4.4rem,11vw,12.8rem)] tracking-[-0.085em]',
-  'ml-[13vw] rotate-[0.7deg] text-[clamp(3.55rem,8.6vw,9.8rem)] tracking-[-0.06em]',
-  'ml-[2vw] rotate-[-0.4deg] text-[clamp(3.05rem,6.85vw,8rem)] tracking-[-0.07em]',
-  'ml-[22vw] rotate-[1.1deg] text-[clamp(3.75rem,8.7vw,9.9rem)] tracking-[-0.08em]',
-  'ml-[5vw] rotate-[-0.8deg] text-[clamp(3.15rem,6.7vw,7.8rem)] tracking-[-0.065em]',
+  'ml-0 rotate-[-1.1deg] text-[clamp(2.8rem,15vw,4.4rem)] tracking-[-0.075em] lg:ml-[1vw] lg:rotate-[-1.4deg] lg:text-[clamp(4.4rem,11vw,12.8rem)] lg:tracking-[-0.085em]',
+  'ml-[4vw] rotate-[0.5deg] text-[clamp(2.2rem,10.8vw,3.55rem)] tracking-[-0.055em] lg:ml-[13vw] lg:rotate-[0.7deg] lg:text-[clamp(3.55rem,8.6vw,9.8rem)] lg:tracking-[-0.06em]',
+  'ml-0 rotate-[-0.25deg] text-[clamp(1.3rem,6.4vw,3.05rem)] tracking-[-0.052em] lg:ml-[2vw] lg:rotate-[-0.4deg] lg:text-[clamp(3.05rem,6.85vw,8rem)] lg:tracking-[-0.07em]',
+  'ml-[8vw] rotate-[0.8deg] text-[clamp(2.15rem,10.5vw,3.75rem)] tracking-[-0.07em] lg:ml-[22vw] lg:rotate-[1.1deg] lg:text-[clamp(3.75rem,8.7vw,9.9rem)] lg:tracking-[-0.08em]',
+  'ml-[2vw] rotate-[-0.5deg] text-[clamp(1.45rem,7.2vw,3.15rem)] tracking-[-0.055em] lg:ml-[5vw] lg:rotate-[-0.8deg] lg:text-[clamp(3.15rem,6.7vw,7.8rem)] lg:tracking-[-0.065em]',
 ];
 
 export default function EditorialSignatureScene() {
@@ -149,10 +149,10 @@ export default function EditorialSignatureScene() {
   return (
     <section ref={sectionRef} className="relative z-30 -mt-[100vh] h-[820vh] w-full pointer-events-none">
       <div className="sticky top-0 h-screen w-full overflow-hidden">
-        <div className="absolute inset-0 flex items-center px-2 py-10 md:px-6">
+        <div className="absolute inset-0 flex items-center px-3 py-10 md:px-6">
           <h2
             ref={phraseRef}
-            className="w-full select-none font-[family-name:var(--font-editorial)] font-black uppercase leading-[0.82]"
+            className="w-full select-none font-[family-name:var(--font-editorial)] font-black uppercase leading-[0.9] lg:leading-[0.82]"
             aria-label="Lo común se olvida, pero una presencia bien hecha deja una huella silenciosa que distingue."
           >
             {PHRASE_LINES.map((line, lineIndex) => (

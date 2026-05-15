@@ -128,6 +128,7 @@ export default function AboutAxe({
     <canvas
       ref={canvasRef}
       aria-hidden="true"
+      className="about-axe-canvas"
       style={{
         position: 'fixed',
         inset: 0,

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { Navbar } from '@/components/navbar';
 import { FooterOnly } from '@/components/ContactAndFooter';
 import Image from 'next/image';
@@ -281,7 +282,21 @@ const FALLBACK_BLOG = {
   ]
 };
 
-export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+type BlogPostPageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const blog = BLOG_DATABASE[slug] || FALLBACK_BLOG;
+
+  return {
+    title: `${blog.title} | Blog`,
+    description: blog.description,
+  };
+}
+
+export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
   const blog = BLOG_DATABASE[slug] || FALLBACK_BLOG;
 

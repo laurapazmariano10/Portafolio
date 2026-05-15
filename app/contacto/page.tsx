@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import { ContactAndFooter } from '@/components/ContactAndFooter';
 import { Navbar } from '@/components/navbar';
+
+export const metadata: Metadata = {
+  title: 'Contacto | Mariano Laura',
+  description: 'Contacta con Mariano Laura para diseñar y desarrollar experiencias digitales, sitios web, UI/UX y software a medida.',
+};
 
 export default function ContactoPage() {
   return (

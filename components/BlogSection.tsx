@@ -5,12 +5,12 @@ import Link from 'next/link';
 
 export default function BlogSection() {
   return (
-    <section id="blog" className="relative w-full bg-white px-6 py-32 md:px-10 lg:px-20 text-[#303030]">
+    <section id="blog" className="relative w-full bg-white px-6 py-24 text-[#303030] md:px-10 md:py-32 lg:px-20">
       <div className="mx-auto max-w-[1120px]">
         
         {/* Header */}
         <div className="mb-20 max-w-[900px]">
-          <h2 className="font-[family-name:var(--font-antonio)] text-[clamp(3.5rem,7vw,6.5rem)] font-bold uppercase leading-[1.15] tracking-[-0.04em] text-[#303030]">
+          <h2 className="break-words font-[family-name:var(--font-antonio)] text-[clamp(3rem,7vw,6.5rem)] font-bold uppercase leading-[1.15] tracking-[-0.04em] text-[#303030]">
             IDEAS Y PERSPECTIVAS DE<br />TECNOLOGÍA
           </h2>
           <p className="body-medium mt-6 max-w-[580px] text-[#303030]/66">
@@ -21,7 +21,7 @@ export default function BlogSection() {
         {/* Featured Post */}
         <div className="mb-24 group cursor-pointer">
           <Link href="/blog/el-futuro-de-la-ia" className="block">
-            <div className="relative h-[400px] md:h-[500px] w-full overflow-hidden rounded-[30px] bg-[#f0f0f0] mb-8">
+            <div className="relative mb-8 h-[320px] w-full overflow-hidden rounded-[24px] bg-[#f0f0f0] md:h-[500px] md:rounded-[30px]">
               <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
                 <Image src="/imgBlogsWebp/EL FUTURO DE LA INTELIGENCIA ARTIFICIAL/portada.webp" alt="El futuro de la IA" fill className="object-cover" />
               </div>
@@ -42,7 +42,7 @@ export default function BlogSection() {
               </span>
             </div>
             
-            <h3 className="mt-4 font-[family-name:var(--font-antonio)] text-[clamp(2rem,3vw,2.5rem)] font-bold uppercase leading-[1.2] tracking-[0.02em] text-[#303030] transition-colors duration-300">
+            <h3 className="mt-4 break-words font-[family-name:var(--font-antonio)] text-[clamp(2rem,3vw,2.5rem)] font-bold uppercase leading-[1.2] tracking-[0.02em] text-[#303030] transition-colors duration-300">
               EL FUTURO DE LA INTELIGENCIA ARTIFICIAL EN EL DESARROLLO DE SOFTWARE
             </h3>
             

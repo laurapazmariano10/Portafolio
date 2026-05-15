@@ -1,17 +1,29 @@
 'use client';
 
-import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, type CSSProperties } from 'react';
 import { Navbar } from '@/components/navbar';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/dist/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-const LiquidScene = dynamic(() => import('@/components/LiquidScene'), { ssr: false });
 import SignatureSVG from '@/components/SignatureSVG';
 import EditorialSignatureScene from '@/components/EditorialSignatureScene';
 import LoadingScreen from '@/components/LoadingScreen';
 import ServicesAboutSections from '@/components/ServicesAboutSections';
+
+type LiquidSceneProps = {
+  isGlobalRevealed?: boolean;
+  onTrailUpdate: (trail: Array<{ x: number; y: number; z: number }>, screenW: number, screenH: number, globalRevealVal: number) => void;
+  onReady: () => void;
+  sceneProgressOverride: number | undefined;
+  containerStyle: CSSProperties | undefined;
+  backgroundOnly?: boolean;
+  dpr?: number[];
+  interactionEnabled?: boolean;
+};
+
+const LiquidScene = dynamic<LiquidSceneProps>(() => import('@/components/LiquidScene').then((mod) => mod.default), { ssr: false });
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -121,7 +133,11 @@ function renderSdfMask(
 export default function Home() {
   const [isGlobalRevealed, setIsGlobalRevealed] = useState(false);
   const [webglReady, setWebglReady] = useState(false);
+  const [isTouchViewport, setIsTouchViewport] = useState(false);
+  const [isTouchRevealActive, setIsTouchRevealActive] = useState(false);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previousBodyOverflowRef = useRef('');
+  const previousHtmlOverflowRef = useRef('');
 
   useLayoutEffect(() => {
     if (typeof window === 'undefined') return;
@@ -136,6 +152,42 @@ export default function Home() {
     const id = window.setTimeout(() => ScrollTrigger.refresh(), 80);
     return () => window.clearTimeout(id);
   }, [webglReady]);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 1023px)');
+    const update = () => {
+      setIsTouchViewport(media.matches);
+      if (!media.matches) setIsTouchRevealActive(false);
+    };
+
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    if (!isTouchViewport || !isTouchRevealActive) {
+      document.body.style.overflow = previousBodyOverflowRef.current;
+      document.documentElement.style.overflow = previousHtmlOverflowRef.current;
+      return;
+    }
+
+    previousBodyOverflowRef.current = document.body.style.overflow;
+    previousHtmlOverflowRef.current = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousBodyOverflowRef.current;
+      document.documentElement.style.overflow = previousHtmlOverflowRef.current;
+    };
+  }, [isTouchViewport, isTouchRevealActive]);
+
+  useEffect(() => {
+    if (isTouchViewport && !isTouchRevealActive) {
+      const resetTimer = window.setTimeout(() => setIsGlobalRevealed(false), 0);
+      return () => window.clearTimeout(resetTimer);
+    }
+  }, [isTouchViewport, isTouchRevealActive]);
 
   // Canvas de máscara SDF
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -352,7 +404,8 @@ export default function Home() {
           onTrailUpdate={handleTrailUpdate}
           onReady={() => setWebglReady(true)}
           sceneProgressOverride={undefined}
-          containerStyle={undefined}
+          containerStyle={isTouchViewport && !isTouchRevealActive ? { pointerEvents: 'none' } : undefined}
+          interactionEnabled={!isTouchViewport || isTouchRevealActive}
         />
       </div>
 
@@ -363,7 +416,7 @@ export default function Home() {
       {/* CAPA BASE: TEXTOS EN NEGRO (siempre visibles, debajo) */}
       <div className="absolute inset-0 z-20 pointer-events-none">
         {/* FIRMA — Esquina Superior Izquierda */}
-        <div className="absolute top-8 left-8 md:top-10 md:left-10 w-56 md:w-[22rem] drop-shadow-md">
+        <div className="absolute left-5 top-[6.1875rem] w-32 drop-shadow-md sm:w-40 md:left-8 md:top-[6.9375rem] md:w-48 lg:left-10 lg:top-10 lg:w-[22rem]">
           <SignatureSVG color="#1D1D1B" className="w-full h-auto opacity-90" />
         </div>
       </div>
@@ -373,7 +426,7 @@ export default function Home() {
         ref={heroWhiteLayerRef}
         className="absolute inset-0 pointer-events-none"
         style={{
-          zIndex: 21,
+          zIndex: 31,
           maskImage: 'none',
           WebkitMaskImage: 'none',
           maskSize: '100% 100%',
@@ -384,14 +437,22 @@ export default function Home() {
         }}
       >
         {/* FIRMA BLANCA — misma posición exacta */}
-        <div className="absolute top-8 left-8 md:top-10 md:left-10 w-56 md:w-[22rem]">
+        <div className="absolute left-5 top-[6.1875rem] w-32 sm:w-40 md:left-8 md:top-[6.9375rem] md:w-48 lg:left-10 lg:top-10 lg:w-[22rem]">
           <SignatureSVG color="#FFFFFF" className="w-full h-auto" />
+        </div>
+        <div className="absolute right-5 top-[6.0875rem] z-30 pointer-events-none select-none md:right-8 md:top-[6.9375rem] lg:hidden">
+          <h1
+            className="text-right text-[clamp(1.45rem,8.8vw,2.25rem)] font-bold uppercase leading-[0.82] tracking-[-0.03em] md:text-[clamp(2rem,6.4vw,3rem)]"
+            style={{ fontFamily: 'var(--font-serif)', color: '#FFFFFF' }}
+          >
+            Mariano<br />Laura
+          </h1>
         </div>
       </div>
 
       {/* MINI TARJETA REVELADORA — solo en la pantalla principal */}
       <div
-        className="absolute bottom-8 left-8 md:bottom-10 md:left-10 z-30 cursor-default group pointer-events-auto"
+        className="absolute bottom-8 left-8 z-30 hidden cursor-default group pointer-events-auto lg:bottom-10 lg:left-10 lg:block"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -419,12 +480,31 @@ export default function Home() {
           <div className="absolute top-[6px] right-[6px] w-1 h-1 rounded-full bg-[#1D1D1B]/50 group-hover:bg-[#1D1D1B]/70 transition-all duration-500" />
         </div>
       </div>
+      <div className="absolute right-5 top-[6.0875rem] z-30 pointer-events-none select-none md:right-8 md:top-[6.9375rem] lg:hidden">
+        <h1
+          className="text-right text-[clamp(1.45rem,8.8vw,2.25rem)] font-bold uppercase leading-[0.82] tracking-[-0.03em] md:text-[clamp(2rem,6.4vw,3rem)]"
+          style={{ fontFamily: 'var(--font-serif)', color: '#1D1D1B' }}
+        >
+          Mariano<br />Laura
+        </h1>
+      </div>
+      <button
+        type="button"
+        aria-pressed={isTouchRevealActive}
+        onClick={() => setIsTouchRevealActive((active) => !active)}
+        className="pointer-events-auto absolute bottom-8 right-5 z-30 flex items-center gap-2 rounded-full bg-black/55 px-3 py-2 text-[0.48rem] font-bold uppercase tracking-[0.18em] text-white/95 shadow-[0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-md transition-colors duration-300 md:right-8 lg:hidden"
+      >
+        <span>{isTouchRevealActive ? 'Tap para scrollear' : 'Tap para interactuar'}</span>
+        <span className={`grid h-9 w-9 place-items-center rounded-[0.7rem] text-[1rem] shadow-[0_10px_24px_rgba(104,114,242,0.25)] transition-colors duration-300 ${isTouchRevealActive ? 'bg-white text-[#6872F2]' : 'bg-[#6872F2] text-white'}`}>
+          {isTouchRevealActive ? '×' : '↯'}
+        </span>
+      </button>
       </div>
 
-      <div className="fixed top-8 right-8 md:top-10 md:right-10 z-40 pointer-events-none select-none">
+      <div className="fixed right-8 top-8 z-40 hidden pointer-events-none select-none lg:right-10 lg:top-10 lg:block">
         <h1
           ref={nameBaseRef}
-          className="text-5xl md:text-[5.5rem] font-bold uppercase leading-[0.8] tracking-[-0.03em] text-right"
+          className="text-[5.5rem] font-bold uppercase leading-[0.8] tracking-[-0.03em] text-right"
           style={{ fontFamily: 'var(--font-serif)', color: '#1D1D1B' }}
         >
           Mariano<br />Laura
@@ -433,7 +513,7 @@ export default function Home() {
 
       <div
         ref={nameWhiteLayerRef}
-        className="fixed inset-0 z-50 pointer-events-none select-none"
+        className="fixed inset-0 z-50 hidden pointer-events-none select-none lg:block"
         style={{
           maskImage: 'none',
           WebkitMaskImage: 'none',
@@ -444,9 +524,9 @@ export default function Home() {
           opacity: 0,
         }}
       >
-        <div className="absolute top-8 right-8 md:top-10 md:right-10">
+        <div className="absolute right-8 top-8 lg:right-10 lg:top-10">
           <h1
-            className="text-5xl md:text-[5.5rem] font-bold uppercase leading-[0.8] tracking-[-0.03em] text-right"
+            className="text-[5.5rem] font-bold uppercase leading-[0.8] tracking-[-0.03em] text-right"
             style={{ fontFamily: 'var(--font-serif)', color: '#FFFFFF' }}
           >
             Mariano<br />Laura

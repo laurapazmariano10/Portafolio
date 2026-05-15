@@ -162,9 +162,16 @@ export default function ServicesAboutSections() {
       const projectCards = projectCardRefs.current.filter(Boolean);
       const projectsButton = projectsButtonRef.current;
       const preview = cursorPreviewRef.current;
-      if (!services || !cardTrack || !card || !cardInner || !preview) return;
+      if (!preview) return;
 
       gsap.set(preview, { autoAlpha: 0, scale: 0.92 });
+      const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+      if (!isDesktop) {
+        gsap.set([projectsIntro, projectsButton, ...projectCards].filter(Boolean), { clearProps: 'all' });
+        return;
+      }
+
+      if (!services || !cardTrack || !card || !cardInner) return;
       gsap.set(card, {
         x: '-20vw',
         y: '-18vh',
@@ -298,6 +305,7 @@ export default function ServicesAboutSections() {
   );
 
   const showPreview = (service: (typeof SERVICES)[number], event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 1024px)').matches) return;
     setActiveService(service);
     const preview = cursorPreviewRef.current;
     const image = cursorImageRef.current;
@@ -312,6 +320,7 @@ export default function ServicesAboutSections() {
   };
 
   const movePreview = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 1024px)').matches) return;
     const preview = cursorPreviewRef.current;
     if (!preview) return;
     gsap.to(preview, { x: event.clientX + 22, y: event.clientY - 36, duration: 0.18, ease: 'power2.out' });
@@ -501,9 +510,9 @@ export default function ServicesAboutSections() {
           </div>
         </div>
 
-        <section ref={projectsRef} id="projects" className="relative -mx-6 h-[620vh] bg-white md:-mx-14 lg:-mx-20">
-          <div className="sticky top-0 h-screen overflow-hidden px-6 py-[8vh] md:px-14 lg:px-20">
-            <div ref={projectsIntroRef} className="absolute left-6 right-6 top-[11vh] z-20 mx-auto flex max-w-[1120px] flex-col gap-4 md:left-14 md:right-14 lg:left-20 lg:right-20">
+        <section ref={projectsRef} id="projects" className="relative -mx-6 bg-white py-24 md:-mx-14 md:py-28 lg:-mx-20 lg:h-[620vh] lg:py-0">
+          <div className="mx-auto max-w-[1120px] px-6 md:px-14 lg:sticky lg:top-0 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-20 lg:py-[8vh]">
+            <div ref={projectsIntroRef} className="relative z-20 mx-auto flex max-w-[1120px] flex-col gap-4 lg:absolute lg:left-20 lg:right-20 lg:top-[11vh]">
               <div>
                 <h2 className="text-[clamp(3rem,5vw,3.75rem)] font-bold uppercase leading-[1.3] tracking-normal text-[#303030]">
                   Proyectos destacados
@@ -514,14 +523,14 @@ export default function ServicesAboutSections() {
               </div>
             </div>
 
-            <div className="absolute inset-0 grid place-items-center px-6 pt-[10vh] md:px-14 lg:px-20">
+            <div className="relative mt-10 grid gap-8 lg:absolute lg:inset-0 lg:mt-0 lg:grid lg:place-items-center lg:px-20 lg:pt-[10vh]">
               {PROJECTS.map((project, index) => (
                 <div
                   key={project.title}
                   ref={(node) => {
                     if (node) projectCardRefs.current[index] = node;
                   }}
-                  className="absolute aspect-[1120/746.66] w-[min(1120px,calc(100vw-3rem))] max-h-[72vh] overflow-hidden rounded-[28px] border border-[#303030]/10 bg-[#101014] md:w-[min(1120px,calc(100vw-7rem))] lg:w-[min(1120px,calc(100vw-10rem))]"
+                  className="relative aspect-[1120/746.66] w-full overflow-hidden rounded-[28px] border border-[#303030]/10 bg-[#101014] lg:absolute lg:w-[min(1120px,calc(100vw-10rem))] lg:max-h-[72vh]"
                 >
                   {project.image && <SmartImage src={project.image} alt={project.title} className="absolute inset-0 h-full w-full object-cover" />}
                   <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(16,16,20,0.72)_0%,rgba(23,24,39,0.58)_45%,rgba(15,15,18,0.78)_100%)]" />
@@ -543,7 +552,7 @@ export default function ServicesAboutSections() {
               <a
                 ref={projectsButtonRef}
                 href="#contact"
-                className="absolute bottom-[4vh] z-20 inline-flex h-12 items-center justify-center rounded-full border border-[#6872F2] bg-white px-9 text-base font-bold uppercase tracking-normal text-[#6872F2] transition-all duration-300 hover:bg-[#6872F2] hover:text-white"
+                className="relative z-20 mt-10 inline-flex h-12 items-center justify-center self-center rounded-full border border-[#6872F2] bg-white px-9 text-base font-bold uppercase tracking-normal text-[#6872F2] transition-all duration-300 hover:bg-[#6872F2] hover:text-white lg:absolute lg:bottom-[4vh] lg:mt-0"
               >
                 Más proyectos
               </a>
@@ -551,8 +560,8 @@ export default function ServicesAboutSections() {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-[1080px] gap-8 bg-white py-28 md:grid-cols-[420px_600px] md:items-start md:justify-between">
-          <div className="min-h-[284px] max-w-[440px]">
+        <section className="mx-auto grid max-w-[1080px] gap-8 bg-white py-28 lg:grid-cols-[420px_600px] lg:items-start lg:justify-between">
+          <div className="max-w-[440px] lg:min-h-[284px]">
             <h2 className="text-[clamp(3rem,5vw,3.75rem)] font-bold uppercase leading-[1.3] tracking-normal text-[#303030]">
               Preguntas frecuentes
             </h2>
@@ -561,7 +570,7 @@ export default function ServicesAboutSections() {
             </p>
           </div>
 
-          <div className="min-h-[583px] w-full max-w-[600px]">
+          <div className="w-full max-w-[600px] lg:min-h-[583px]">
             {FAQS.map((faq, index) => {
               const isActive = activeFaq === index;
 
@@ -571,7 +580,7 @@ export default function ServicesAboutSections() {
                     type="button"
                     aria-expanded={isActive}
                     onClick={() => setActiveFaq(isActive ? -1 : index)}
-                    className={`flex w-full items-start justify-between gap-6 py-6 text-left text-[clamp(1.65rem,2.2vw,2rem)] font-normal uppercase leading-[1.3] tracking-normal transition-colors duration-300 ${isActive ? 'text-[#6872F2]' : 'text-[#303030]'}`}
+                    className={`flex w-full items-start justify-between gap-6 py-6 text-left text-[clamp(1.45rem,5vw,2rem)] font-normal uppercase leading-[1.3] tracking-normal transition-colors duration-300 lg:text-[clamp(1.65rem,2.2vw,2rem)] ${isActive ? 'text-[#6872F2]' : 'text-[#303030]'}`}
                   >
                     <span>{index + 1}. {faq.question}</span>
                     <span className="mt-1 text-2xl leading-none">{isActive ? '⌃' : '⌄'}</span>
@@ -635,7 +644,7 @@ export default function ServicesAboutSections() {
 
       <ContactAndFooter />
 
-      <div ref={cursorPreviewRef} className="pointer-events-none fixed left-0 top-0 z-[80] h-24 w-36 overflow-hidden rounded-2xl border border-white/60 bg-[#e8e8e8] opacity-0 shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
+      <div ref={cursorPreviewRef} className="pointer-events-none fixed left-0 top-0 z-[80] hidden h-24 w-36 overflow-hidden rounded-2xl border border-white/60 bg-[#e8e8e8] opacity-0 shadow-[0_18px_42px_rgba(0,0,0,0.22)] lg:block">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           ref={cursorImageRef}

@@ -160,6 +160,7 @@ const fragmentLiquid = `
   uniform sampler2D u_textureScan;
   uniform vec3 u_trail[10];
   uniform float u_time;
+  uniform float u_imageScale;
   
   uniform vec2 u_resolution;
   uniform vec2 u_imageResolution;
@@ -188,8 +189,8 @@ const fragmentLiquid = `
     vec2 uvCover = vUv * s / newRes + offset;
 
     // Escalar la imagen ANCLADA ABAJO (+10% más de tamaño, reduciendo el multiplicador a 1.12)
-    uvCover.x = (uvCover.x - 0.5) * 1.12 + 0.5; 
-    uvCover.y = uvCover.y * 1.12; 
+    uvCover.x = (uvCover.x - 0.5) * u_imageScale + 0.5; 
+    uvCover.y = uvCover.y * u_imageScale; 
 
     // Anular pixeles si se salen del borde por la reducción
     float inside = step(0.0, uvCover.x) * step(uvCover.x, 1.0) * step(0.0, uvCover.y) * step(uvCover.y, 1.0);
@@ -301,7 +302,7 @@ const fragmentLiquid = `
   }
 `;
 
-function SceneContent({ isGlobalRevealed, onTrailUpdate, onReady, sceneProgressOverride, backgroundOnly = false }) {
+function SceneContent({ isGlobalRevealed, onTrailUpdate, onReady, sceneProgressOverride, backgroundOnly = false, interactionEnabled = true, pointerStateRef }) {
     const { size, viewport } = useThree();
 
     const [texBase, texReveal, texDepth, texDepthHero, texScan] = useTexture(["/Sujeto.webp", "/Hero.webp", "/DepthMap.webp", "/DepthMapHero.webp", "/Scaneo2.webp"]);
@@ -337,13 +338,17 @@ function SceneContent({ isGlobalRevealed, onTrailUpdate, onReady, sceneProgressO
             u_textureDepthHero: { value: texDepthHero },
             u_textureScan: { value: texScan },
             u_globalReveal: { value: 0.0 },
-            u_sceneProgress: { value: 0.0 }
+            u_sceneProgress: { value: 0.0 },
+            u_imageScale: { value: 1.12 }
         };
     }, [texBase, texReveal, texDepth, texDepthHero, texScan]);
 
     useEffect(() => {
         if (!backgroundOnly && liquidUniforms.u_resolution) {
             liquidUniforms.u_resolution.value.set(size.width, size.height);
+        }
+        if (!backgroundOnly && liquidMatRef.current?.uniforms?.u_imageScale) {
+            liquidMatRef.current.uniforms.u_imageScale.value = size.width < 640 ? 1.34 : size.width < 1024 ? 1.24 : 1.12;
         }
         if (bgUniforms.u_resolution) {
             bgUniforms.u_resolution.value.set(size.width, size.height);
@@ -450,8 +455,10 @@ function SceneContent({ isGlobalRevealed, onTrailUpdate, onReady, sceneProgressO
         }
 
         // ─── 1. MOUSE EN UV (0..1) ───
-        const mx = pointer.x * 0.5 + 0.5;
-        const my = pointer.y * 0.5 + 0.5;
+        const touchPointer = pointerStateRef?.current;
+        const hasTouchPointer = interactionEnabled && touchPointer?.active;
+        const mx = hasTouchPointer ? touchPointer.x : pointer.x * 0.5 + 0.5;
+        const my = hasTouchPointer ? touchPointer.y : pointer.y * 0.5 + 0.5;
 
         // ─── 2. VELOCIDAD ───
         const dx = mx - lastRawPointer.current.x;
@@ -475,7 +482,7 @@ function SceneContent({ isGlobalRevealed, onTrailUpdate, onReady, sceneProgressO
         // ─── 3. ACTIVIDAD CONTINUA (anti-parpadeo) ───
         // En vez de un switch on/off, usamos un valor que sube/baja suavemente.
         // Esto elimina el parpadeo a velocidades bajas.
-        const isMoving = rawSpeed > 0.0005 && isPointerInside.current;
+        const isMoving = interactionEnabled && isPointerInside.current && (hasTouchPointer || rawSpeed > 0.0005);
         const actTarget = isMoving ? 1.0 : 0.0;
         const actLambda = isMoving ? ACTIVITY_RISE : ACTIVITY_FALL;
         activity.current = THREE.MathUtils.damp(
@@ -485,7 +492,7 @@ function SceneContent({ isGlobalRevealed, onTrailUpdate, onReady, sceneProgressO
         if (activity.current < 0.005) activity.current = 0.0;
 
         // ─── 4. TELEPORT CHECK ───
-        if (rawSpeed > TELEPORT_THRESHOLD) {
+        if (interactionEnabled && rawSpeed > TELEPORT_THRESHOLD) {
             for (let i = 0; i < 10; i++) {
                 trailRef.current[i].set(mx, my, 0.0);
             }
@@ -498,8 +505,11 @@ function SceneContent({ isGlobalRevealed, onTrailUpdate, onReady, sceneProgressO
         trailRef.current[0].y = my;
 
         // ─── 6. HEAD: RADIO ───
-        const rawTargetR = MIN_R + smoothedSpeed.current * SPEED_TO_RADIUS;
-        const clampedTarget = THREE.MathUtils.clamp(rawTargetR, MIN_R, MAX_R);
+        const responsiveRevealScale = size.width < 1024 ? 0.5 : 1.0;
+        const scaledMinR = MIN_R * responsiveRevealScale;
+        const scaledMaxR = MAX_R * responsiveRevealScale;
+        const rawTargetR = scaledMinR + smoothedSpeed.current * SPEED_TO_RADIUS * responsiveRevealScale;
+        const clampedTarget = THREE.MathUtils.clamp(rawTargetR, scaledMinR, scaledMaxR);
         const finalTarget = clampedTarget * activity.current;
         const radiusLambda = finalTarget > headRadius.current ? 18.0 : 5.0;
         headRadius.current = THREE.MathUtils.damp(
@@ -621,22 +631,59 @@ function SceneContent({ isGlobalRevealed, onTrailUpdate, onReady, sceneProgressO
 }
 
 // === COMPONENTE PRINCIPAL ===
-export default function LiquidScene({ isGlobalRevealed = false, onTrailUpdate, onReady, sceneProgressOverride, containerStyle, backgroundOnly = false, dpr = [1, 1.5] }) {
+export default function LiquidScene({ isGlobalRevealed = false, onTrailUpdate, onReady, sceneProgressOverride, containerStyle, backgroundOnly = false, dpr = [1, 1.5], interactionEnabled = true }) {
+    const pointerStateRef = useRef({ x: 0.5, y: 0.5, active: false });
     const resolvedContainerStyle = {
         position: "fixed",
         inset: 0,
         zIndex: 0,
         overflow: "hidden",
+        touchAction: interactionEnabled ? "none" : "auto",
         ...containerStyle,
     };
 
+    const updatePointerState = (event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / Math.max(rect.width, 1);
+        const y = 1 - (event.clientY - rect.top) / Math.max(rect.height, 1);
+        pointerStateRef.current.x = THREE.MathUtils.clamp(x, 0, 1);
+        pointerStateRef.current.y = THREE.MathUtils.clamp(y, 0, 1);
+    };
+
+    const handlePointerDown = (event) => {
+        if (!interactionEnabled || backgroundOnly) return;
+        event.preventDefault();
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        pointerStateRef.current.active = true;
+        updatePointerState(event);
+    };
+
+    const handlePointerMove = (event) => {
+        if (!interactionEnabled || backgroundOnly || !pointerStateRef.current.active) return;
+        event.preventDefault();
+        updatePointerState(event);
+    };
+
+    const handlePointerEnd = (event) => {
+        if (!interactionEnabled || backgroundOnly) return;
+        event.currentTarget.releasePointerCapture?.(event.pointerId);
+        pointerStateRef.current.active = false;
+    };
+
     return (
-        <div style={resolvedContainerStyle} suppressHydrationWarning>
+        <div
+            style={resolvedContainerStyle}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerEnd}
+            onPointerCancel={handlePointerEnd}
+            suppressHydrationWarning
+        >
             <Canvas
                 camera={{ position: [0, 0, 1], fov: 50 }}
                 gl={{ alpha: true, antialias: !backgroundOnly, powerPreference: backgroundOnly ? "low-power" : "high-performance" }}
                 dpr={dpr}
-                style={{ width: "100%", height: "100%", position: "absolute", inset: 0, pointerEvents: backgroundOnly ? "none" : "auto" }}
+                style={{ width: "100%", height: "100%", position: "absolute", inset: 0, pointerEvents: backgroundOnly || !interactionEnabled ? "none" : "auto", touchAction: interactionEnabled ? "none" : "auto" }}
             >
                 <React.Suspense fallback={null}>
                     <SceneContent
@@ -645,6 +692,8 @@ export default function LiquidScene({ isGlobalRevealed = false, onTrailUpdate, o
                         onReady={onReady}
                         sceneProgressOverride={sceneProgressOverride}
                         backgroundOnly={backgroundOnly}
+                        interactionEnabled={interactionEnabled}
+                        pointerStateRef={pointerStateRef}
                     />
                 </React.Suspense>
             </Canvas>

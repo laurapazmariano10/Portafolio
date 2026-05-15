@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import ProjectDetailClient from '@/components/projects/ProjectDetailClient';
 import { PROJECTS, getProjectBySlug } from '@/components/projects/projectsData';
@@ -10,12 +11,13 @@ export function generateStaticParams() {
   return PROJECTS.map((project) => ({ slug: project.slug }));
 }
 
-export async function generateMetadata({ params }: ProjectPageProps) {
+export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
   const { slug } = await params;
   const project = getProjectBySlug(slug);
 
   return {
     title: project ? `${project.title} | Proyectos` : 'Proyecto',
+    description: project?.description,
   };
 }
 

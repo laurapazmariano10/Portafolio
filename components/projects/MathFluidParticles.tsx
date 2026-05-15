@@ -201,8 +201,10 @@ export default function MathFluidParticles() {
 
     let lastMouseX = -9999, lastMouseY = -9999;
     let mouseVx = 0, mouseVy = 0;
+    let activePointerId: number | null = null;
+    let activeTouchIdentifier: number | null = null;
 
-    const onMove = (e: PointerEvent) => {
+    const onMove = (e: { clientX: number; clientY: number }) => {
       const rect = canvas.getBoundingClientRect();
       const nx = e.clientX - rect.left;
       const ny = e.clientY - rect.top;
@@ -218,14 +220,62 @@ export default function MathFluidParticles() {
       Matter.Body.setPosition(mouseRepulsor, { x: lastMouseX, y: lastMouseY });
     };
 
+    const onPointerDown = (e: PointerEvent) => {
+      activePointerId = e.pointerId;
+      if (e.pointerType === 'mouse') container.setPointerCapture?.(e.pointerId);
+      onMove(e);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse' && activePointerId !== e.pointerId) return;
+      onMove(e);
+    };
+
     const onLeave = () => {
       lastMouseX = -9999; lastMouseY = -9999;
       mouseVx = 0; mouseVy = 0;
       Matter.Body.setPosition(mouseRepulsor, { x: -9999, y: -9999 });
     };
 
-    container.addEventListener('pointermove', onMove, { passive: true });
+    const onPointerEnd = (e: PointerEvent) => {
+      if (activePointerId === e.pointerId) {
+        activePointerId = null;
+        if (e.pointerType === 'mouse') container.releasePointerCapture?.(e.pointerId);
+        onLeave();
+      }
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+      activeTouchIdentifier = touch.identifier;
+      onMove(touch);
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      const touch = Array.from(e.touches).find((item) => item.identifier === activeTouchIdentifier) ?? e.touches[0];
+      if (!touch) return;
+      onMove(touch);
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (activeTouchIdentifier === null) return;
+      const stillActive = Array.from(e.touches).some((item) => item.identifier === activeTouchIdentifier);
+      if (!stillActive) {
+        activeTouchIdentifier = null;
+        onLeave();
+      }
+    };
+
+    container.addEventListener('pointerdown', onPointerDown, { passive: true });
+    container.addEventListener('pointermove', onPointerMove, { passive: true });
+    container.addEventListener('pointerup', onPointerEnd);
+    container.addEventListener('pointercancel', onPointerEnd);
     container.addEventListener('pointerleave', onLeave);
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: true });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', onTouchEnd, { passive: true });
 
     const tick = () => {
       if (cw > 0 && awakeRef.current) {
@@ -294,8 +344,15 @@ export default function MathFluidParticles() {
 
     return () => {
       resObs.disconnect(); wakeObs.disconnect();
-      container.removeEventListener('pointermove', onMove);
+      container.removeEventListener('pointerdown', onPointerDown);
+      container.removeEventListener('pointermove', onPointerMove);
+      container.removeEventListener('pointerup', onPointerEnd);
+      container.removeEventListener('pointercancel', onPointerEnd);
       container.removeEventListener('pointerleave', onLeave);
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       if (runnerRef.current) Matter.Runner.stop(runnerRef.current);
       Matter.Engine.clear(engine);
@@ -331,7 +388,7 @@ export default function MathFluidParticles() {
 
   return (
     <section ref={sectionRef} className="math-fluid relative w-full h-screen">
-      <div ref={containerRef} className="math-fluid__sticky relative h-full w-full overflow-hidden bg-white">
+      <div ref={containerRef} className="math-fluid__sticky relative h-full w-full touch-pan-y overflow-hidden bg-white">
         <canvas ref={canvasRef} className="absolute inset-0 z-0 h-full w-full" />
         <div ref={textRef} className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center text-center text-[#111]">
           <p className="mb-5 font-[family-name:var(--font-sans)] text-[clamp(0.78rem,1vw,0.95rem)] font-medium uppercase tracking-[0.22em] text-[#303030]/70">
