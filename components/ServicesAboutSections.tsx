@@ -1,6 +1,6 @@
 'use client';
 
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/dist/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -47,7 +47,7 @@ const PROJECTS = [
     image: '/imgProyectosWebp/zygoWebWebp/PortadaW.webp',
   },
   {
-    title: 'ApiSky',
+    title: 'Pisky',
     description: 'Sistema de mensajería masiva por WhatsApp para una empresa de turismo.',
     tag: 'Automatización',
     image: '/imgProyectosWebp/piskyWebp/PortadaP.webp',
@@ -68,12 +68,12 @@ const PROJECTS = [
 
 const FAQS = [
   {
-    question: '¿Qué servicios ofrecen?',
+    question: '¿Qué servicios ofreces?',
     answer: 'Diseño y desarrollo páginas web, interfaces, branding, contenido digital y software a medida según lo que necesite tu proyecto.',
   },
   {
     question: '¿Cómo funciona el proceso de diseño?',
-    answer: 'Primero entendemos tu objetivo, luego definimos una dirección visual, diseñamos la experiencia y ajustamos todo contigo hasta llegar a una solución clara.',
+    answer: 'Primero entiendo tu objetivo, luego defino una dirección visual, diseño la experiencia y ajusto todo contigo hasta llegar a una solución clara.',
   },
   {
     question: '¿Cuánto tiempo suele durar un proyecto?',
@@ -84,12 +84,12 @@ const FAQS = [
     answer: 'Solo necesito conocer tu idea, objetivos, referencias y el contenido disponible. Si aún no tienes todo listo, te acompaño en ese proceso.',
   },
   {
-    question: '¿Ofrecen revisiones?',
+    question: '¿Ofreces revisiones?',
     answer: 'Sí. Cada proyecto incluye revisiones para ajustar diseño, textos y detalles importantes antes de la entrega final.',
   },
   {
     question: '¿Cómo puedo empezar?',
-    answer: 'Puedes escribirme con una breve explicación de lo que necesitas. Revisamos tu caso y definimos el siguiente paso juntos.',
+    answer: 'Puedes escribirme con una breve explicación de lo que necesitas. Reviso tu caso y te propongo el siguiente paso.',
   },
 ];
 
@@ -223,7 +223,7 @@ export default function ServicesAboutSections() {
             trigger: projects,
             start: 'top top',
             end: 'bottom bottom',
-            scrub: 0.85,
+            scrub: 0.65,
             invalidateOnRefresh: true,
           },
         });
@@ -357,45 +357,13 @@ export default function ServicesAboutSections() {
     };
   }, []);
 
-  const handleContactSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const name = String(formData.get('name') ?? '');
-    const phone = String(formData.get('phone') ?? '');
-    const service = String(formData.get('service') ?? '');
-    const message = String(formData.get('message') ?? '');
-
-    const subject = encodeURIComponent(service || 'Nueva consulta desde el portfolio');
-    const body = encodeURIComponent(
-      `Nombre: ${name}\nNúmero de contacto: ${phone}\nServicio: ${service}\n\nMensaje:\n${message}`
-    );
-
-    window.location.href = `mailto:laurapazmariano652@gmail.com?subject=${subject}&body=${body}`;
-  };
-
-  const handleWhatsAppSubmit = (event: React.MouseEvent<HTMLButtonElement>) => {
-    const form = event.currentTarget.form;
-    if (!form) return;
-
-    const formData = new FormData(form);
-    const name = String(formData.get('name') ?? '');
-    const phone = String(formData.get('phone') ?? '');
-    const service = String(formData.get('service') ?? '');
-    const message = String(formData.get('message') ?? '');
-    const whatsappMessage = encodeURIComponent(
-      `Hola Mariano, quisiera consultar sobre ${service || 'un proyecto'}.\n\nNombre: ${name}\nNúmero de contacto: ${phone}\nMensaje: ${message}`
-    );
-
-    window.open(`https://wa.me/51925685323?text=${whatsappMessage}`, '_blank', 'noopener,noreferrer');
-  };
-
   return (
     <div ref={rootRef} id="services-about" className="relative z-40 bg-white font-[family-name:var(--font-antonio)] text-[#303030]" suppressHydrationWarning>
       <div className="pointer-events-none absolute -top-[120vh] left-0 right-0 h-[135vh] bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.18)_22%,rgba(255,255,255,0.72)_58%,#fff_100%)]" />
       <div className="pointer-events-none absolute -top-[48vh] left-0 right-0 h-[62vh] bg-white/95 [clip-path:polygon(0_44%,100%_18%,100%_100%,0_100%)]" />
 
       <div className="relative bg-white px-6 pt-[16vh] md:px-14 lg:px-20">
-        <div ref={cardTrackRef} className="mx-auto grid max-w-[1200px] gap-14 lg:grid-cols-[650px_1fr]">
+        <div ref={cardTrackRef} className="mx-auto grid max-w-[1200px] gap-14 lg:grid-cols-[650px_minmax(0,1fr)]">
           <div>
             <section ref={servicesRef} className="flex min-h-screen items-center py-20">
               <div className="w-full max-w-[650px]">
@@ -403,7 +371,7 @@ export default function ServicesAboutSections() {
                   Lo que puedo hacer por ti
                 </h2>
                 <p className="body-medium mt-6 max-w-[470px] text-[#303030]/68">
-                  Como diseñador digital, soy un narrador visual que crea experiencias que conectan profundamente y despiertan la creatividad.
+                  Me gusta crear experiencias digitales y soluciones visuales que se sientan claras, útiles y con personalidad.
                 </p>
 
                 <div className="mt-10">
@@ -457,9 +425,9 @@ export default function ServicesAboutSections() {
 
                 <div className="mt-11 grid max-w-[620px] grid-cols-3 gap-7">
                   {[
-                    ['3', 'Años de experiencia'],
-                    ['12+', 'Proyectos finalizados'],
-                    ['12+', 'Clientes y colaboraciones'],
+                    ['2', 'Años de experiencia'],
+                    ['9+', 'Proyectos finalizados'],
+                    ['9+', 'Clientes y colaboraciones'],
                   ].map(([value, label]) => (
                     <div key={label}>
                       <div className="text-[clamp(3.25rem,4.8vw,4rem)] font-bold leading-none text-[#6872F2]">{value}</div>
@@ -472,15 +440,13 @@ export default function ServicesAboutSections() {
                   <div className="grid max-w-[650px] gap-y-5 sm:grid-cols-[minmax(0,1fr)_max-content] sm:gap-x-20">
                     <div>
                       <p className="body-small-bold uppercase text-[#303030]/55">Email</p>
-                      <a href="mailto:laurapazmariano652@gmail.com" className="body-medium-bold mt-2 block text-[#303030] transition-colors duration-300 hover:text-[#6872F2]">
+                      <a href="https://mail.google.com/mail/?view=cm&fs=1&to=laurapazmariano652@gmail.com" target="_blank" rel="noreferrer" className="body-medium-bold mt-2 block text-[#303030] transition-colors duration-300 hover:text-[#6872F2]">
                         laurapazmariano652@gmail.com
                       </a>
                     </div>
                     <div>
-                      <p className="body-small-bold uppercase text-[#303030]/55">WhatsApp</p>
-                      <a href="https://wa.me/51925685323" target="_blank" rel="noreferrer" className="body-medium-bold mt-2 block text-[#303030] transition-colors duration-300 hover:text-[#6872F2]">
-                        +51 925 685 323
-                      </a>
+                      <p className="body-small-bold uppercase text-[#303030]/55">Contacto</p>
+                      <p className="body-medium-bold mt-2 block text-[#303030]">+51 925 685 323</p>
                     </div>
                   </div>
                   <a
@@ -494,7 +460,7 @@ export default function ServicesAboutSections() {
             </section>
           </div>
 
-          <div className="relative hidden lg:block">
+          <div className="relative hidden xl:block">
             <div className="sticky top-0 flex h-screen items-center justify-center">
               <div ref={cardRef} className="relative h-[392px] w-[280px] md:h-[448px] md:w-[320px]" style={{ perspective: 1200 }}>
                 <div ref={cardInnerRef} className="relative h-full w-full [transform-style:preserve-3d]">
@@ -510,7 +476,7 @@ export default function ServicesAboutSections() {
           </div>
         </div>
 
-        <section ref={projectsRef} id="projects" className="relative -mx-6 bg-white py-24 md:-mx-14 md:py-28 lg:-mx-20 lg:h-[620vh] lg:py-0">
+        <section ref={projectsRef} id="projects" className="relative -mx-6 bg-white py-24 md:-mx-14 md:py-28 lg:-mx-20 lg:h-[540vh] lg:py-0">
           <div className="mx-auto max-w-[1120px] px-6 md:px-14 lg:sticky lg:top-0 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-20 lg:py-[8vh]">
             <div ref={projectsIntroRef} className="relative z-20 mx-auto flex max-w-[1120px] flex-col gap-4 lg:absolute lg:left-20 lg:right-20 lg:top-[11vh]">
               <div>
@@ -560,7 +526,7 @@ export default function ServicesAboutSections() {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-[1080px] gap-8 bg-white py-28 lg:grid-cols-[420px_600px] lg:items-start lg:justify-between">
+        <section className="mx-auto grid max-w-[1080px] gap-8 bg-white py-28 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-start xl:grid-cols-[420px_600px] xl:justify-between">
           <div className="max-w-[440px] lg:min-h-[284px]">
             <h2 className="text-[clamp(3rem,5vw,3.75rem)] font-bold uppercase leading-[1.3] tracking-normal text-[#303030]">
               Preguntas frecuentes
@@ -570,7 +536,7 @@ export default function ServicesAboutSections() {
             </p>
           </div>
 
-          <div className="w-full max-w-[600px] lg:min-h-[583px]">
+          <div className="w-full max-w-[600px] lg:min-h-[583px] lg:max-w-none xl:max-w-[600px]">
             {FAQS.map((faq, index) => {
               const isActive = activeFaq === index;
 
@@ -601,10 +567,10 @@ export default function ServicesAboutSections() {
         <section id="blog" className="mx-auto max-w-[1120px] bg-white py-28">
           <div>
             <h2 className="max-w-[760px] text-[clamp(3rem,5vw,3.75rem)] font-bold uppercase leading-[1.3] tracking-normal text-[#303030]">
-              Ideas y perspectivas de diseño
+              Tecnología, IA y diseño digital
             </h2>
             <p className="body-medium mt-6 max-w-[540px] text-[#303030]/66">
-              Desde las tendencias de diseño hasta los procesos creativos, estos artículos ofrecen ideas que te ayudarán a perfeccionar tu oficio, resolver desafíos y generar nuevas ideas para tus proyectos.
+              Lecturas sobre inteligencia artificial, cómputo espacial, arquitectura web y nuevas formas de construir productos digitales con criterio.
             </p>
           </div>
 

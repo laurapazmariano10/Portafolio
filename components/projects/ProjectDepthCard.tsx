@@ -24,15 +24,33 @@ void main() {
 
 const FRAGMENT_SHADER = `
 precision mediump float;
+#define INTERNAL_ZOOM 0.92
 uniform sampler2D u_image;
 uniform sampler2D u_depth;
 uniform vec2 u_mouse;
+uniform vec2 u_imageSize;
+uniform vec2 u_canvasSize;
 uniform float u_strength;
 uniform float u_invert;
 varying vec2 v_texCoord;
 
+vec2 coverUv(vec2 uv, vec2 imageSize, vec2 canvasSize) {
+  float imageAspect = imageSize.x / imageSize.y;
+  float canvasAspect = canvasSize.x / canvasSize.y;
+  vec2 scale = vec2(1.0);
+
+  if (canvasAspect > imageAspect) {
+    scale.y = imageAspect / canvasAspect;
+  } else {
+    scale.x = canvasAspect / imageAspect;
+  }
+
+  return (uv - 0.5) * scale + 0.5;
+}
+
 void main() {
-  vec4 depthColor = texture2D(u_depth, v_texCoord);
+  vec2 baseUv = coverUv(v_texCoord, u_imageSize, u_canvasSize);
+  vec4 depthColor = texture2D(u_depth, baseUv);
   float depth = depthColor.r;
   
   // If depth map is inverted (black = near), flip it
@@ -41,10 +59,13 @@ void main() {
   // Displace based on depth (white = near, black = far)
   vec2 offset = u_mouse * ((depth - 0.5) * u_strength);
   
-  // Slight zoom to prevent edge wrapping/clamping from being visible
-  vec2 uv = (v_texCoord - 0.5) * 0.96 + 0.5;
+  // Internal zoom keeps depth displacement away from texture edges.
+  vec2 uv = (baseUv - 0.5) * INTERNAL_ZOOM + 0.5;
+  vec2 sampleUv = clamp(uv + offset, vec2(0.001), vec2(0.999));
   
-  gl_FragColor = texture2D(u_image, uv + offset);
+  vec4 color = texture2D(u_image, sampleUv);
+  color.a = 1.0;
+  gl_FragColor = color;
 }
 `;
 
@@ -67,6 +88,8 @@ export default function ProjectDepthCard({ cover, depthMap, title, className, st
 
   const pointerRef = useRef({ tx: 0, ty: 0, x: 0, y: 0, active: false });
   const rafRef = useRef<number | null>(null);
+  const canHoverRef = useRef(false);
+  const shakeTimerRef = useRef<number | null>(null);
   const [isShaking, setIsShaking] = useState(false);
 
   useEffect(() => {
@@ -74,6 +97,7 @@ export default function ProjectDepthCard({ cover, depthMap, title, className, st
 
     const canvas = canvasRef.current;
     if (!canvas) return;
+    canHoverRef.current = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     const gl = canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: false });
     if (!gl) return;
 
@@ -116,7 +140,9 @@ export default function ProjectDepthCard({ cover, depthMap, title, className, st
     gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
     // Helper to load textures
-    const createTexture = (src: string, index: number, uniformName: string) => {
+    let imageNaturalSize = { width: 1, height: 1 };
+
+    const createTexture = (src: string, index: number, uniformName: string, onLoad?: (img: HTMLImageElement) => void) => {
       const texture = gl.createTexture();
       gl.activeTexture(gl.TEXTURE0 + index);
       gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -135,16 +161,21 @@ export default function ProjectDepthCard({ cover, depthMap, title, className, st
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        onLoad?.(img);
       };
 
       const loc = gl.getUniformLocation(program, uniformName);
       gl.uniform1i(loc, index);
     };
 
-    createTexture(cover, 0, 'u_image');
+    createTexture(cover, 0, 'u_image', (img) => {
+      imageNaturalSize = { width: img.naturalWidth || img.width, height: img.naturalHeight || img.height };
+    });
     createTexture(depthMap, 1, 'u_depth');
 
     const mouseLoc = gl.getUniformLocation(program, 'u_mouse');
+    const imageSizeLoc = gl.getUniformLocation(program, 'u_imageSize');
+    const canvasSizeLoc = gl.getUniformLocation(program, 'u_canvasSize');
     const strengthLoc = gl.getUniformLocation(program, 'u_strength');
     const invertLoc = gl.getUniformLocation(program, 'u_invert');
 
@@ -173,6 +204,8 @@ export default function ProjectDepthCard({ cover, depthMap, title, className, st
 
       gl.useProgram(program);
       gl.uniform2f(mouseLoc, p.x, p.y);
+      gl.uniform2f(imageSizeLoc, imageNaturalSize.width, imageNaturalSize.height);
+      gl.uniform2f(canvasSizeLoc, canvas.width, canvas.height);
       gl.uniform1f(strengthLoc, strength);
       gl.uniform1f(invertLoc, invertDepth ? 1.0 : 0.0);
 
@@ -185,20 +218,27 @@ export default function ProjectDepthCard({ cover, depthMap, title, className, st
     return () => {
       observer.disconnect();
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (shakeTimerRef.current !== null) window.clearTimeout(shakeTimerRef.current);
       gl.deleteProgram(program);
     };
   }, [cover, depthMap, strength, invertDepth]);
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!canHoverRef.current) return;
     const rect = e.currentTarget.getBoundingClientRect();
     pointerRef.current.tx = ((e.clientX - rect.left) / rect.width - 0.5) * 2.0;
     pointerRef.current.ty = ((e.clientY - rect.top) / rect.height - 0.5) * 2.0;
   };
 
   const handlePointerEnter = () => {
+    if (!canHoverRef.current) return;
     pointerRef.current.active = true;
     setIsShaking(true);
-    window.setTimeout(() => setIsShaking(false), 320); // Matched with CSS duration
+    if (shakeTimerRef.current !== null) window.clearTimeout(shakeTimerRef.current);
+    shakeTimerRef.current = window.setTimeout(() => {
+      setIsShaking(false);
+      shakeTimerRef.current = null;
+    }, 220);
   };
 
   const handlePointerLeave = () => {
@@ -210,7 +250,7 @@ export default function ProjectDepthCard({ cover, depthMap, title, className, st
   return (
     <div
       ref={wrapRef}
-      className={`project-depth-card relative aspect-[1120/746] overflow-hidden rounded-[28px] bg-[#f1f1f1] ${isShaking ? 'project-depth-card--shake' : ''} ${className ?? ''}`}
+      className={`project-depth-card relative overflow-hidden rounded-[28px] bg-[#f1f1f1] ${isShaking ? 'project-depth-card--shake' : ''} ${className ?? ''}`}
       onPointerEnter={handlePointerEnter}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}

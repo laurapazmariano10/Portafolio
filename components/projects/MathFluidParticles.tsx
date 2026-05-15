@@ -204,6 +204,10 @@ export default function MathFluidParticles() {
     let activePointerId: number | null = null;
     let activeTouchIdentifier: number | null = null;
 
+    const isInteractiveTarget = (target: EventTarget | null) => {
+      return target instanceof Element && Boolean(target.closest('a, button, input, textarea, select, [role="button"]'));
+    };
+
     const onMove = (e: { clientX: number; clientY: number }) => {
       const rect = canvas.getBoundingClientRect();
       const nx = e.clientX - rect.left;
@@ -221,6 +225,7 @@ export default function MathFluidParticles() {
     };
 
     const onPointerDown = (e: PointerEvent) => {
+      if (isInteractiveTarget(e.target)) return;
       activePointerId = e.pointerId;
       if (e.pointerType === 'mouse') container.setPointerCapture?.(e.pointerId);
       onMove(e);
@@ -394,7 +399,7 @@ export default function MathFluidParticles() {
           <p className="mb-5 font-[family-name:var(--font-sans)] text-[clamp(0.78rem,1vw,0.95rem)] font-medium uppercase tracking-[0.22em] text-[#303030]/70">
             tienes una idea en mente?
           </p>
-          <Link href="/contacto" className="pointer-events-auto transition-transform hover:scale-105 duration-300">
+          <Link href="/contacto#contact" className="pointer-events-auto transition-transform hover:scale-105 duration-300">
             <h2 className="font-[family-name:var(--font-antonio)] text-[clamp(3.4rem,9vw,8.4rem)] font-bold uppercase leading-[1.05] tracking-[-0.045em] drop-shadow-sm">
               <span className="block"><SlotWord word="Trabajemos" idPrefix="t" /></span>
               <span className="block"><SlotWord word="juntos!" idPrefix="j" /></span>

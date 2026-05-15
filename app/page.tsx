@@ -217,15 +217,16 @@ export default function Home() {
       scrollTrigger: {
         trigger: hero,
         start: 'bottom bottom',
-        end: 'bottom top',
-        scrub: 0.8,
+        end: () => `+=${Math.max(window.innerHeight * 0.78, 1)}`,
+        scrub: 0.55,
+        invalidateOnRefresh: true,
       },
     });
 
     const cursorRevealTrigger = ScrollTrigger.create({
       trigger: document.body,
       start: 'top top',
-      end: () => window.innerHeight * 1.08,
+      end: () => window.innerHeight * 0.78,
       scrub: true,
       invalidateOnRefresh: true,
       onUpdate: (self) => {
@@ -251,7 +252,7 @@ export default function Home() {
           scrollTrigger: {
             trigger: document.body,
             start: 'top top',
-            end: () => window.innerHeight * 1.08,
+            end: () => window.innerHeight * 0.78,
             scrub: true,
             invalidateOnRefresh: true,
           },
@@ -385,7 +386,7 @@ export default function Home() {
   const handleMouseEnter = () => {
     hoverTimeoutRef.current = setTimeout(() => {
       setIsGlobalRevealed(true);
-    }, 1000);
+    }, 500);
   };
 
   const handleMouseLeave = () => {
@@ -464,16 +465,19 @@ export default function Home() {
 
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
             <Image
-              src="/Scaneo2.webp"
+              src="/Hero.webp"
               alt=""
               fill
-              className="object-cover opacity-50 group-hover:opacity-70 transition-opacity duration-700 pointer-events-none scale-110"
+              sizes="320px"
+              unoptimized
+              className="object-cover opacity-60 transition-opacity duration-500 pointer-events-none group-hover:opacity-75"
+              style={{ objectPosition: '50% 48%' }}
             />
           </div>
 
-          <div className="absolute bottom-[6px] left-0 right-0 flex flex-col items-center pointer-events-none">
-            <span className="text-[0.45rem] md:text-[0.55rem] font-light tracking-[0.25em] uppercase text-[#1D1D1B]/50 group-hover:text-[#1D1D1B]/70 transition-colors duration-500">
-              hold
+          <div className="absolute bottom-[5px] left-0 right-0 flex justify-center pointer-events-none">
+            <span className="whitespace-nowrap rounded-full bg-white/86 px-1.5 py-[2px] text-[0.5rem] font-semibold leading-none tracking-normal text-[#1D1D1B]/78 shadow-[0_3px_10px_rgba(0,0,0,0.08)] transition-colors duration-500 group-hover:bg-white/94 group-hover:text-[#1D1D1B]/88 md:text-[0.58rem]">
+              0.5 seg
             </span>
           </div>
 

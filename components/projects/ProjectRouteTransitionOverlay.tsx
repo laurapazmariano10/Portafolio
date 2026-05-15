@@ -23,11 +23,14 @@ type ProjectTransitionDetail = {
   type: 'enter' | 'return';
   href: string;
   context: ProjectTransitionContext;
+  onNavigate?: () => void;
+  isModalReturn?: boolean;
 };
 
 type PendingTransition = ProjectTransitionDetail;
 
 const EVENT_NAME = 'project-route-transition';
+const CARD_IMAGE_SCALE = 1 / 0.92;
 
 function setScrollPosition(y: number) {
   window.scrollTo(0, y);
@@ -85,11 +88,19 @@ export function ProjectRouteTransitionOverlay() {
       pendingRef.current = { ...detail, context };
       isAnimatingRef.current = true;
       lockScroll();
+      const navigate = () => {
+        if (detail.onNavigate) {
+          detail.onNavigate();
+          return;
+        }
+
+        router.push(detail.href, { scroll: false });
+      };
 
       if (detail.type === 'enter') {
         const rect = context.rect;
         if (!rect) {
-          router.push(detail.href, { scroll: false });
+          navigate();
           return;
         }
 
@@ -114,7 +125,7 @@ export function ProjectRouteTransitionOverlay() {
           backgroundImage: `url(${context.cover})`,
           backgroundPosition: 'center',
           backgroundSize: 'cover',
-          scale: 1,
+          scale: CARD_IMAGE_SCALE,
           force3D: true,
           willChange: 'transform',
         });
@@ -123,7 +134,9 @@ export function ProjectRouteTransitionOverlay() {
           background: context.gradient,
         });
 
-        gsap.timeline()
+        const timeline = gsap.timeline();
+
+        timeline
           .to(overlay, {
             x: 0,
             y: 0,
@@ -132,12 +145,12 @@ export function ProjectRouteTransitionOverlay() {
             borderRadius: 0,
             duration: 1,
             ease: 'power4.inOut',
-          })
+          }, 0)
           .to(colorOverlay, {
             autoAlpha: 1,
             duration: 0.4,
             ease: 'power2.inOut',
-            onStart: () => router.push(detail.href, { scroll: false }),
+            onStart: navigate,
           }, '-=0.35');
 
         return;
@@ -145,6 +158,10 @@ export function ProjectRouteTransitionOverlay() {
 
       window.sessionStorage.setItem('project-return-transition', JSON.stringify(context));
       gsap.killTweensOf([overlay, imageLayer, colorOverlay]);
+      const liveTargetCard = detail.isModalReturn
+        ? document.querySelector(`[data-project-slug="${context.slug}"] [data-project-card-frame]`) as HTMLElement | null
+        : null;
+      const liveTargetRect = liveTargetCard?.getBoundingClientRect();
       gsap.set(overlay, {
         autoAlpha: 0,
         pointerEvents: 'auto',
@@ -164,7 +181,7 @@ export function ProjectRouteTransitionOverlay() {
         backgroundImage: `url(${context.cover})`,
         backgroundPosition: 'center',
         backgroundSize: 'cover',
-        scale: 1,
+        scale: CARD_IMAGE_SCALE,
         force3D: true,
         willChange: 'transform',
       });
@@ -173,9 +190,45 @@ export function ProjectRouteTransitionOverlay() {
         background: context.gradient,
       });
 
+      if (detail.isModalReturn && liveTargetRect && liveTargetRect.width > 10 && liveTargetRect.height > 10) {
+        gsap.timeline({
+          defaults: { ease: 'power3.inOut' },
+          onComplete: () => {
+            navigate();
+            setScrollPosition(context.scrollY);
+            gsap.set([overlay, imageLayer, colorOverlay], { clearProps: 'all' });
+            pendingRef.current = null;
+            isAnimatingRef.current = false;
+            unlockScroll();
+          },
+        })
+          .to('[data-detail-intro], [data-project-frame]', {
+            autoAlpha: 0,
+            y: -22,
+            filter: 'blur(10px)',
+            duration: 0.38,
+            stagger: { amount: 0.1, from: 'end' },
+          })
+          .to(overlay, { autoAlpha: 1, duration: 0.18, ease: 'power2.out' }, '-=0.05')
+          .to('[data-project-detail-root]', { autoAlpha: 0, duration: 0.24, ease: 'power2.inOut' }, '-=0.05')
+          .to(colorOverlay, { autoAlpha: 0, duration: 0.28, ease: 'power2.inOut' }, '<')
+          .to(overlay, {
+            x: liveTargetRect.left,
+            y: liveTargetRect.top,
+            width: liveTargetRect.width,
+            height: liveTargetRect.height,
+            borderRadius: 28,
+            duration: 1.05,
+            ease: 'power4.inOut',
+          })
+          .to(overlay, { autoAlpha: 0, duration: 0.18, ease: 'power2.out' }, '-=0.02');
+
+        return;
+      }
+
       gsap.timeline({
         defaults: { ease: 'power3.inOut' },
-        onComplete: () => router.push(detail.href, { scroll: false }),
+        onComplete: navigate,
       })
         .to('[data-detail-intro], [data-project-frame]', {
           autoAlpha: 0,
@@ -275,7 +328,7 @@ export function ProjectRouteTransitionOverlay() {
         backgroundImage: `url(${context.cover})`,
         backgroundPosition: 'center',
         backgroundSize: 'cover',
-        scale: 1,
+        scale: CARD_IMAGE_SCALE,
         force3D: true,
         willChange: 'transform',
       });

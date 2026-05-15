@@ -153,10 +153,9 @@ export function Navbar() {
 
               <Link
                 href={pathname === '/' ? '/#contact' : '/contacto'}
-                className="group relative mr-[2px] flex h-[36px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#222] px-5 text-[14px] font-medium text-[#FFF] transition-all duration-400 hover:shadow-[0_10px_26px_rgba(104,114,242,0.28)]"
+                className="mr-[2px] flex h-[36px] shrink-0 items-center justify-center rounded-full bg-[#222] px-5 text-[14px] font-medium text-[#FFF] transition-[background-color,box-shadow] duration-300 hover:bg-[#6872F2] hover:shadow-[0_10px_26px_rgba(104,114,242,0.28)]"
               >
-                <span className="absolute inset-0 bg-[#6872F2] rounded-full scale-0 group-hover:scale-100 transition-transform duration-400 ease-out origin-center" />
-                <span className="relative z-10">Contacto</span>
+                Contacto
               </Link>
             </motion.div>
           )}

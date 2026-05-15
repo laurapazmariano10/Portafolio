@@ -181,7 +181,7 @@ export default function AboutSection() {
             initial={{ x: '10vw', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-            className="flex h-full w-1/2 flex-col items-end justify-center pb-[3vh] pr-[130px] sm:pr-[160px] md:pb-[6vh] md:pr-[190px] lg:pr-[200px] xl:pr-[220px]"
+            className="flex h-full w-1/2 flex-col items-end justify-center pb-[3vh] pr-[130px] sm:pr-[160px] md:pb-[6vh] md:pr-[190px] lg:pr-[150px] xl:pr-[220px]"
           >
             <div className="flex flex-col items-end">
               <span className="font-[family-name:var(--font-antonio)] text-[18px] font-normal uppercase tracking-normal text-[#303030] md:text-[28px] lg:text-[32px]">
@@ -197,7 +197,7 @@ export default function AboutSection() {
             initial={{ x: '-10vw', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-            className="flex h-full w-1/2 flex-col items-start justify-center pl-[130px] pt-[3vh] sm:pl-[160px] md:pl-[190px] md:pt-[6vh] lg:pl-[200px] xl:pl-[220px]"
+            className="flex h-full w-1/2 flex-col items-start justify-center pl-[130px] pt-[3vh] sm:pl-[160px] md:pl-[190px] md:pt-[6vh] lg:pl-[150px] xl:pl-[220px]"
           >
             <div className="flex flex-col items-start max-w-max">
               <h1 className="font-[family-name:var(--font-antonio)] text-[12vw] font-bold uppercase leading-[1.1] tracking-[-0.03em] text-[#303030] sm:text-[80px] md:text-[100px] lg:text-[110px] xl:text-[120px]">
@@ -246,7 +246,7 @@ export default function AboutSection() {
       <section className="mx-auto flex w-full max-w-[1200px] flex-col px-6 py-0 md:px-10 lg:py-28">
         
         {/* Acerca de mí */}
-        <div id="about-me-section" className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[650px_1fr] lg:gap-14">
+        <div id="about-me-section" className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,600px)_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[650px_1fr] xl:gap-14">
           <div className="w-full max-w-[650px]">
             <h2 className="font-[family-name:var(--font-antonio)] text-[clamp(3rem,5vw,3.75rem)] font-bold uppercase leading-[1.08] tracking-normal text-[#303030] lg:leading-[1.3]">
               Acerca de mí
@@ -265,7 +265,7 @@ export default function AboutSection() {
         <div className="h-28 w-full md:h-36 lg:h-[100vh]" aria-hidden="true" />
 
         {/* Lo que puedo hacer por ti */}
-        <div id="services-section" className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[1fr_650px] lg:gap-14">
+        <div id="services-section" className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,600px)] lg:gap-8 xl:grid-cols-[1fr_650px] xl:gap-14">
           <div className="hidden min-h-[420px] lg:block sticky top-1/2" aria-hidden="true" />
           <div className="w-full max-w-[650px] flex flex-col justify-center">
             <h2 className="font-[family-name:var(--font-antonio)] text-[clamp(3rem,5vw,3.75rem)] font-bold uppercase leading-[1.3] tracking-normal text-[#303030]">
@@ -319,7 +319,7 @@ export default function AboutSection() {
       <div className="h-28 w-full md:h-36 lg:h-[100vh]" aria-hidden="true" />
 
       <section id="stack-section" className="px-6 py-14 text-[#303030] md:px-10 lg:bg-white lg:py-28">
-        <div className="mx-auto grid max-w-[1200px] gap-14 lg:grid-cols-[650px_1fr]">
+        <div className="mx-auto grid max-w-[1200px] gap-14 lg:grid-cols-[minmax(0,600px)_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[650px_1fr] xl:gap-14">
           <div className="w-full max-w-[650px]">
             <h2 className="font-[family-name:var(--font-antonio)] text-[clamp(3rem,5vw,3.75rem)] font-bold uppercase leading-[1.3] tracking-normal text-[#303030]">
               Mi stack tecnológico

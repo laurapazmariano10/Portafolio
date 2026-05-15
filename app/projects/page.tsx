@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
-import { useRef } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/dist/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -17,9 +17,23 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 export default function ProjectsPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const rootRef = useRef<HTMLElement>(null);
   const cardRefs = useRef<Array<HTMLElement | null>>([]);
   const isTransitioningRef = useRef(false);
+
+  useEffect(() => {
+    if (pathname === '/projects') {
+      isTransitioningRef.current = false;
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    PROJECTS.forEach((project) => {
+      router.prefetch(`/projects/${project.slug}`);
+    });
+    import('@/components/projects/ProjectDetailClient').catch(() => undefined);
+  }, [router]);
 
   useGSAP(
     () => {
@@ -41,10 +55,8 @@ export default function ProjectsPage() {
         gsap.set([title, intro, ...cards].filter(Boolean), {
           autoAlpha: 1,
           y: 0,
-          scaleX: 1,
-          scaleY: 1,
+          scale: 1,
           rotate: 0,
-          rotateX: 0,
           filter: 'blur(0px)',
         });
       } else if (title) {
@@ -64,30 +76,26 @@ export default function ProjectsPage() {
       if (!returnTransition) cards.forEach((card, index) => {
         gsap.set(card, {
           autoAlpha: 0,
-          y: 130,
-          scaleX: 0.9,
-          scaleY: 1.2,
-          rotate: index % 2 === 0 ? -2 : 2,
-          rotateX: -28,
-          transformPerspective: 1100,
-          transformOrigin: '50% 100%',
-          filter: 'blur(14px)',
+          y: index === 0 ? 56 : 86,
+          scale: 0.985,
+          rotate: 0,
+          transformOrigin: '50% 55%',
+          filter: 'blur(8px)',
         });
 
         gsap.to(card, {
           autoAlpha: 1,
           y: 0,
-          scaleX: 1,
-          scaleY: 1,
+          scale: 1,
           rotate: 0,
-          rotateX: 0,
           filter: 'blur(0px)',
-          duration: 1.45,
-          ease: 'elastic.out(1, 0.7)',
+          duration: 0.85,
+          ease: 'power3.out',
           scrollTrigger: {
             trigger: card,
-            start: 'top 78%',
-            toggleActions: 'play none none reverse',
+            start: 'top 84%',
+            toggleActions: 'play none none none',
+            once: true,
           },
         });
       });
@@ -105,12 +113,12 @@ export default function ProjectsPage() {
       return;
     }
     event.preventDefault();
-    const card = event.currentTarget.querySelector('[data-project-card-frame]');
-    const rect = card?.getBoundingClientRect();
-    if (!rect) {
+    const card = event.currentTarget.querySelector('[data-project-card-frame]') as HTMLElement | null;
+    if (!card) {
       router.push(`/projects/${project.slug}`, { scroll: false });
       return;
     }
+    const rect = card.getBoundingClientRect();
 
     isTransitioningRef.current = true;
     const context = {
@@ -132,6 +140,7 @@ export default function ProjectsPage() {
         type: 'enter',
         href: `/projects/${project.slug}`,
         context,
+        onNavigate: () => router.push(`/projects/${project.slug}`, { scroll: false }),
       },
     }));
   };
@@ -139,7 +148,7 @@ export default function ProjectsPage() {
   return (
     <main ref={rootRef} className="min-h-screen bg-white text-[#111]">
       <Navbar />
-      <section className="mx-auto max-w-[1180px] px-6 pb-24 pt-[18vh] md:px-10">
+      <section className="mx-auto max-w-[1180px] px-6 pb-24 pt-[12vh] md:px-10 md:pt-[14vh] lg:pt-[18vh]">
         <div className="mb-16">
           <h1 data-projects-title className="font-[family-name:var(--font-antonio)] text-[clamp(4.5rem,11vw,11rem)] font-bold uppercase leading-[0.92] tracking-[-0.04em] text-[#303030]">
             Proyectos Destacados
@@ -159,7 +168,7 @@ export default function ProjectsPage() {
               data-project-slug={project.slug}
               className="group project-card-reveal"
             >
-              <Link prefetch={true} href={`/projects/${project.slug}`} className="block outline-none" onClick={(event) => handleProjectClick(event, project)}>
+              <Link href={`/projects/${project.slug}`} className="block outline-none" onClick={(event) => handleProjectClick(event, project)}>
                 <div data-project-card-frame className="relative aspect-[1120/746] overflow-hidden rounded-[28px]">
                   <ProjectDepthCard 
                     cover={project.cover} 

@@ -2,7 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/dist/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -13,12 +14,66 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 type ProjectDetailClientProps = {
   project: Project;
+  mode?: 'page' | 'modal';
 };
 
-export default function ProjectDetailClient({ project }: ProjectDetailClientProps) {
+export default function ProjectDetailClient({ project, mode = 'page' }: ProjectDetailClientProps) {
+  const router = useRouter();
   const rootRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const isReturningRef = useRef(false);
+  const horizontalScrollTargetRef = useRef(0);
+  const horizontalScrollRafRef = useRef<number | null>(null);
+  const isModal = mode === 'modal';
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const media = window.matchMedia('(min-width: 1024px)');
+    horizontalScrollTargetRef.current = root.scrollLeft;
+
+    const stopHorizontalScroll = () => {
+      if (horizontalScrollRafRef.current !== null) {
+        window.cancelAnimationFrame(horizontalScrollRafRef.current);
+        horizontalScrollRafRef.current = null;
+      }
+    };
+
+    const animateHorizontalScroll = () => {
+      const current = root.scrollLeft;
+      const target = horizontalScrollTargetRef.current;
+      const next = current + (target - current) * 0.18;
+
+      if (Math.abs(target - current) < 0.6) {
+        root.scrollLeft = target;
+        horizontalScrollRafRef.current = null;
+        return;
+      }
+
+      root.scrollLeft = next;
+      horizontalScrollRafRef.current = window.requestAnimationFrame(animateHorizontalScroll);
+    };
+
+    const handleWheel = (event: WheelEvent) => {
+      if (!media.matches) return;
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+
+      event.preventDefault();
+      const maxScrollLeft = root.scrollWidth - root.clientWidth;
+      horizontalScrollTargetRef.current = Math.max(0, Math.min(maxScrollLeft, horizontalScrollTargetRef.current + event.deltaY));
+
+      if (horizontalScrollRafRef.current === null) {
+        horizontalScrollRafRef.current = window.requestAnimationFrame(animateHorizontalScroll);
+      }
+    };
+
+    root.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      root.removeEventListener('wheel', handleWheel);
+      stopHorizontalScroll();
+    };
+  }, []);
 
   useGSAP(
     () => {
@@ -27,23 +82,11 @@ export default function ProjectDetailClient({ project }: ProjectDetailClientProp
       if (!root || !track) return;
 
       const mm = gsap.matchMedia();
+      const scroller = isModal ? root : undefined;
 
       mm.add('(min-width: 1024px)', () => {
-        const getScrollAmount = () => Math.max(0, track.scrollWidth - document.documentElement.clientWidth + 120);
-
-        const tween = gsap.to(track, {
-          x: () => -getScrollAmount(),
-          ease: 'none',
-          scrollTrigger: {
-            trigger: root,
-            start: 'top top',
-            end: () => `+=${getScrollAmount()}`,
-            scrub: 0.85,
-            pin: true,
-            anticipatePin: 1,
-            invalidateOnRefresh: true,
-          },
-        });
+        gsap.set(track, { clearProps: 'transform' });
+        gsap.set('[data-project-frame]', { autoAlpha: 1, scale: 1, rotate: 0, filter: 'blur(0px)' });
 
         gsap.fromTo('[data-detail-intro]', {
           autoAlpha: 0,
@@ -57,33 +100,6 @@ export default function ProjectDetailClient({ project }: ProjectDetailClientProp
           ease: 'power3.out',
           stagger: 0.08,
         });
-
-        gsap.utils.toArray<HTMLElement>('[data-project-frame]').forEach((frame) => {
-          gsap.fromTo(frame, {
-            autoAlpha: 0,
-            scale: 0.92,
-            rotate: -0.8,
-            filter: 'blur(14px)',
-          }, {
-            autoAlpha: 1,
-            scale: 1,
-            rotate: 0,
-            filter: 'blur(0px)',
-            duration: 0.9,
-            ease: 'power3.out',
-            scrollTrigger: {
-              trigger: frame,
-              containerAnimation: tween,
-              start: 'left 82%',
-              toggleActions: 'play none none reverse',
-            },
-          });
-        });
-
-        return () => {
-          tween.scrollTrigger?.kill();
-          tween.kill();
-        };
       });
 
       mm.add('(max-width: 1023px)', () => {
@@ -117,6 +133,7 @@ export default function ProjectDetailClient({ project }: ProjectDetailClientProp
             ease: 'power3.out',
             scrollTrigger: {
               trigger: frame,
+              scroller,
               start: 'top 88%',
               toggleActions: 'play none none reverse',
             },
@@ -128,7 +145,7 @@ export default function ProjectDetailClient({ project }: ProjectDetailClientProp
         mm.revert();
       };
     },
-    { scope: rootRef }
+    { scope: rootRef, dependencies: [isModal] }
   );
 
   const handleBackClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -162,6 +179,15 @@ export default function ProjectDetailClient({ project }: ProjectDetailClientProp
         type: 'return',
         href: '/projects',
         context,
+        isModalReturn: isModal,
+        onNavigate: () => {
+          if (isModal) {
+            router.back();
+            return;
+          }
+
+          router.push('/projects', { scroll: false });
+        },
       },
     }));
   };
@@ -176,15 +202,27 @@ export default function ProjectDetailClient({ project }: ProjectDetailClientProp
     return `relative w-full shrink-0 overflow-hidden bg-white/10 shadow-[0_28px_90px_rgba(0,0,0,0.20)] lg:shadow-[0_35px_120px_rgba(0,0,0,0.22)] ${mobileAspect} rounded-[28px] ${desktopSize}`;
   };
 
+  const rootClassName = isModal
+    ? 'fixed inset-0 z-[120] h-[100dvh] overflow-y-auto overflow-x-hidden overscroll-contain text-white lg:overflow-x-auto lg:overflow-y-hidden'
+    : 'min-h-screen overflow-x-hidden text-white lg:h-screen lg:overflow-x-auto lg:overflow-y-hidden';
+
   return (
-    <main ref={rootRef} className="min-h-screen overflow-x-hidden text-white lg:overflow-hidden" style={{ background: project.gradient }}>
+    <main ref={rootRef} data-project-detail-root className={rootClassName} style={{ background: project.gradient }}>
       <div className="pointer-events-none fixed inset-0 z-0 opacity-60" style={{ background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.18), transparent 34%)' }} />
-      <div ref={trackRef} className="relative z-10 flex w-full flex-col gap-12 px-5 pb-16 pt-6 md:px-10 md:pb-20 lg:h-screen lg:w-max lg:flex-row lg:items-center lg:gap-[210px] lg:px-[clamp(2rem,7vw,6rem)] lg:py-10 lg:will-change-transform">
+      <div data-detail-intro className="fixed left-5 top-5 z-30 flex items-center gap-3 md:left-8 md:top-8">
+        <Link href="/projects" onClick={handleBackClick} className={`inline-flex h-11 items-center justify-center rounded-full px-6 text-xs font-bold uppercase tracking-[-0.02em] shadow-[0_18px_50px_rgba(0,0,0,0.13)] transition-transform duration-300 hover:scale-105 ${project.slug === 'qualitiktok' ? 'bg-white text-[#070e36]' : 'bg-white/86 text-[#111]'}`}>
+          Atrás
+        </Link>
+        <Link href="/contacto#contact" className={`group relative inline-flex h-11 items-center justify-center overflow-hidden rounded-full px-6 text-xs font-bold uppercase tracking-[-0.02em] shadow-[0_18px_50px_rgba(0,0,0,0.13)] ring-1 transition-all duration-500 ease-out hover:-translate-y-0.5 hover:shadow-[0_22px_62px_rgba(104,114,242,0.28)] ${project.slug === 'qualitiktok' ? 'bg-white/14 text-white ring-white/36 backdrop-blur-md hover:bg-white hover:text-[#070e36] hover:ring-white/70' : 'bg-[#111]/88 text-white ring-white/10 hover:bg-[#6872F2] hover:ring-[#6872F2]/45'}`}>
+          <span className="absolute inset-0 -translate-x-[120%] bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.34)_45%,transparent_68%)] transition-transform duration-700 ease-out group-hover:translate-x-[120%]" />
+          <span className="absolute inset-[1px] rounded-full bg-[radial-gradient(circle_at_50%_-20%,rgba(255,255,255,0.38),transparent_44%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+          <span className="relative z-10 transition-transform duration-500 ease-out group-hover:translate-x-[-3px]">Contacto</span>
+          <span className="relative z-10 ml-1.5 translate-x-2 opacity-0 transition-all duration-500 ease-out group-hover:translate-x-0 group-hover:opacity-100">→</span>
+        </Link>
+      </div>
+      <div ref={trackRef} className="relative z-10 flex w-full flex-col gap-12 px-5 pb-16 pt-24 md:px-10 md:pb-20 md:pt-28 lg:h-screen lg:w-max lg:flex-row lg:items-center lg:gap-[210px] lg:px-[clamp(2rem,7vw,6rem)] lg:py-10 lg:will-change-transform">
         <section className="grid w-full shrink-0 grid-cols-1 gap-8 pt-8 md:gap-10 lg:h-[calc(100vh-5rem)] lg:w-[min(960px,88vw)] lg:content-start lg:grid-cols-[minmax(0,1fr)_230px] lg:gap-16 lg:pt-[18vh]">
           <div>
-            <Link href="/projects" onClick={handleBackClick} data-detail-intro className={`mb-10 inline-flex h-11 items-center justify-center rounded-full px-6 text-xs font-bold uppercase tracking-[-0.02em] shadow-[0_18px_50px_rgba(0,0,0,0.13)] lg:hidden ${project.slug === 'qualitiktok' ? 'bg-white text-[#070e36]' : 'bg-white/86 text-[#111]'}`}>
-              Regresar
-            </Link>
             <div data-detail-intro className="mb-10 w-[190px] md:w-[260px] lg:mb-[8vh] lg:w-[300px]">
               <SignatureSVG color={project.slug === 'qualitiktok' ? '#FFFFFF' : '#111111'} className="h-auto w-full" />
             </div>
@@ -203,9 +241,6 @@ export default function ProjectDetailClient({ project }: ProjectDetailClientProp
                 <li key={service}>{service}</li>
               ))}
             </ul>
-            <Link href="/projects" onClick={handleBackClick} className={`mt-14 hidden h-12 items-center justify-center rounded-full px-7 text-sm font-bold uppercase tracking-[-0.02em] shadow-[0_20px_60px_rgba(0,0,0,0.13)] transition-transform duration-300 hover:scale-105 lg:inline-flex ${project.slug === 'qualitiktok' ? 'bg-white text-[#070e36]' : 'bg-white/86 text-[#111]'}`}>
-              Atrás
-            </Link>
           </aside>
         </section>
 

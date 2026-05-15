@@ -5,16 +5,16 @@ import Link from 'next/link';
 
 export default function BlogSection() {
   return (
-    <section id="blog" className="relative w-full bg-white px-6 py-24 text-[#303030] md:px-10 md:py-32 lg:px-20">
+    <section id="blog" className="relative w-full bg-white px-6 py-14 text-[#303030] md:px-10 md:py-20 lg:px-20 lg:py-32">
       <div className="mx-auto max-w-[1120px]">
         
         {/* Header */}
         <div className="mb-20 max-w-[900px]">
           <h2 className="break-words font-[family-name:var(--font-antonio)] text-[clamp(3rem,7vw,6.5rem)] font-bold uppercase leading-[1.15] tracking-[-0.04em] text-[#303030]">
-            IDEAS Y PERSPECTIVAS DE<br />TECNOLOGÍA
+            TECNOLOGÍA, IA Y<br />DISEÑO DIGITAL
           </h2>
           <p className="body-medium mt-6 max-w-[580px] text-[#303030]/66">
-            Desde las tendencias de diseño hasta los procesos creativos, estos artículos ofrecen ideas que te ayudarán a perfeccionar tu oficio, resolver desafíos y generar nuevas ideas para tus proyectos.
+            Lecturas sobre inteligencia artificial, cómputo espacial, computación cuántica, arquitectura web y nuevas formas de crear productos digitales.
           </p>
         </div>
 
@@ -96,7 +96,7 @@ export default function BlogSection() {
                 LA REVOLUCIÓN DE LA REALIDAD MIXTA Y EL CÓMPUTO ESPACIAL
               </h3>
               <p className="body-small mt-5 text-[#303030]/62">
-                El cómputo espacial no es usar unas gafas para ver pantallas flotantes; es disolver por completo la barrera entre el mundo físico y nuestra imaginación. El software acaba de romper la pantalla bidimensional.
+                El cómputo espacial no es usar unas gafas para ver pantallas flotantes; es disolver por completo la barrera entre el mundo físico y la imaginación humana. El software acaba de romper la pantalla bidimensional.
               </p>
             </article>
           </Link>

@@ -394,7 +394,7 @@ function SceneContent({ isGlobalRevealed, onTrailUpdate, onReady, sceneProgressO
         let rafId = 0;
         const updateSceneProgress = () => {
             rafId = 0;
-            const end = Math.max(window.innerHeight * 1.08, 1);
+            const end = Math.max(window.innerHeight * 0.78, 1);
             const progress = THREE.MathUtils.clamp(window.scrollY / end, 0, 1);
             revealState.current.scene = progress;
             if (bgMatRef.current) {

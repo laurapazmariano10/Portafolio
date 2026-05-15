@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Antonio, Bricolage_Grotesque, Inter, Playfair_Display } from 'next/font/google';
 import { CustomScrollbar } from '@/components/CustomScrollbar';
+import { NavigationWarmup } from '@/components/NavigationWarmup';
+import { PageTransitionLoader } from '@/components/PageTransitionLoader';
 import { ProjectRouteTransitionOverlay } from '@/components/projects/ProjectRouteTransitionOverlay';
 import './globals.css';
 
@@ -42,6 +44,8 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${playfair.variable} ${bricolage.variable} ${antonio.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased bg-[#FFFFFF]" suppressHydrationWarning>
         {children}
+        <NavigationWarmup />
+        <PageTransitionLoader />
         <ProjectRouteTransitionOverlay />
         <CustomScrollbar />
       </body>

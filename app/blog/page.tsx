@@ -12,7 +12,7 @@ export default function BlogPage() {
   return (
     <main className="min-h-screen bg-white">
       <Navbar />
-      <div className="pt-20">
+      <div className="pt-8 md:pt-12 lg:pt-20">
         <BlogSection />
       </div>
       <FooterOnly />
