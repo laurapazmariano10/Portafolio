@@ -11,6 +11,7 @@ import SignatureSVG from '@/components/SignatureSVG';
 import EditorialSignatureScene from '@/components/EditorialSignatureScene';
 import LoadingScreen from '@/components/LoadingScreen';
 import ServicesAboutSections from '@/components/ServicesAboutSections';
+import { projectTransitionLog } from '@/components/projects/projectAnimationConfig';
 
 type LiquidSceneProps = {
   isGlobalRevealed?: boolean;
@@ -26,6 +27,8 @@ type LiquidSceneProps = {
 const LiquidScene = dynamic<LiquidSceneProps>(() => import('@/components/LiquidScene').then((mod) => mod.default), { ssr: false });
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
+
+const HERO_REVEAL_SCROLL_FACTOR = 0.62;
 
 // ═══════════════════════════════════════════════════════════════════
 // REPLICACIÓN EXACTA DEL SDF DEL SHADER EN CANVAS 2D
@@ -144,7 +147,44 @@ export default function Home() {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
-    window.scrollTo(0, 0);
+
+    const restoreInitialScroll = (phase: string) => {
+      if (window.location.hash === '#projects') {
+        const projects = document.getElementById('projects');
+        projectTransitionLog('home hash restore attempt', {
+          phase,
+          hash: window.location.hash,
+          hasProjects: Boolean(projects),
+          beforeScrollY: window.scrollY,
+          projectsRect: projects?.getBoundingClientRect(),
+        });
+        projects?.scrollIntoView({ block: 'start' });
+        projectTransitionLog('home hash restore applied', {
+          phase,
+          afterScrollY: window.scrollY,
+          projectsRect: projects?.getBoundingClientRect(),
+        });
+        return;
+      }
+
+      projectTransitionLog('home initial scroll reset to top', {
+        phase,
+        beforeScrollY: window.scrollY,
+        pathname: window.location.pathname,
+        hash: window.location.hash,
+      });
+      window.scrollTo(0, 0);
+    };
+
+    restoreInitialScroll('layout-effect');
+    const frameId = window.requestAnimationFrame(() => restoreInitialScroll('raf-1'));
+    const settleIds = window.location.hash === '#projects'
+      ? [120, 360, 720].map((delay) => window.setTimeout(() => restoreInitialScroll(`timeout-${delay}`), delay))
+      : [];
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      settleIds.forEach((id) => window.clearTimeout(id));
+    };
   }, []);
 
   useEffect(() => {
@@ -217,7 +257,7 @@ export default function Home() {
       scrollTrigger: {
         trigger: hero,
         start: 'bottom bottom',
-        end: () => `+=${Math.max(window.innerHeight * 0.78, 1)}`,
+        end: () => `+=${Math.max(window.innerHeight * HERO_REVEAL_SCROLL_FACTOR, 1)}`,
         scrub: 0.55,
         invalidateOnRefresh: true,
       },
@@ -226,7 +266,7 @@ export default function Home() {
     const cursorRevealTrigger = ScrollTrigger.create({
       trigger: document.body,
       start: 'top top',
-      end: () => window.innerHeight * 0.78,
+      end: () => window.innerHeight * HERO_REVEAL_SCROLL_FACTOR,
       scrub: true,
       invalidateOnRefresh: true,
       onUpdate: (self) => {
@@ -252,7 +292,7 @@ export default function Home() {
           scrollTrigger: {
             trigger: document.body,
             start: 'top top',
-            end: () => window.innerHeight * 0.78,
+            end: () => window.innerHeight * HERO_REVEAL_SCROLL_FACTOR,
             scrub: true,
             invalidateOnRefresh: true,
           },

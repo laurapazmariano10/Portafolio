@@ -6,6 +6,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
+function normalizePath(path: string) {
+  if (path === '/') return path;
+  return path.endsWith('/') ? path.slice(0, -1) : path;
+}
+
 export function Navbar() {
   const pathname = usePathname();
   const [isWorkStatus, setIsWorkStatus] = useState(false);
@@ -15,17 +20,18 @@ export function Navbar() {
   const lastIntentYRef = useRef(0);
   const desktopNavItems = [
     { name: 'Inicio', path: '/' },
-    { name: 'Acerca de', path: '/about' },
-    { name: 'Proyectos', path: '/projects' },
-    { name: 'Blog', path: '/blog' },
+    { name: 'Acerca de', path: '/about/' },
+    { name: 'Proyectos', path: '/projects/' },
+    { name: 'Blog', path: '/blog/' },
   ];
   const compactNavItems = [
     { name: 'Inicio', path: '/' },
-    { name: 'Acerca de', path: '/about' },
-    { name: 'Proyectos', path: '/projects' },
-    { name: 'Blog', path: '/blog' },
-    { name: 'Contacto', path: pathname === '/' ? '/#contact' : '/contacto' },
+    { name: 'Acerca de', path: '/about/' },
+    { name: 'Proyectos', path: '/projects/' },
+    { name: 'Blog', path: '/blog/' },
+    { name: 'Contacto', path: pathname === '/' ? '/#contact' : '/contacto/' },
   ];
+  const currentPath = normalizePath(pathname);
 
   useEffect(() => {
     const closeTimer = window.setTimeout(() => setIsMenuOpen(false), 0);
@@ -108,7 +114,7 @@ export function Navbar() {
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-1 items-center justify-center"
             >
-              <Link href={pathname === '/' ? '/#contact' : '/contacto'} className="group flex items-center justify-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#1d1d1b]/65 transition-colors duration-300 hover:text-[#6872F2]">
+              <Link href={pathname === '/' ? '/#contact' : '/contacto/'} className="group flex items-center justify-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#1d1d1b]/65 transition-colors duration-300 hover:text-[#6872F2]">
                 Disponible para trabajar
                 <span
                   className={`h-1.5 w-1.5 rounded-full transition-all duration-300 group-hover:scale-[1.45] ${
@@ -130,7 +136,8 @@ export function Navbar() {
             >
               <div className="flex flex-1 flex-row items-center justify-center gap-6">
                 {desktopNavItems.map((item) => {
-                  const isActive = pathname === item.path || (item.path === '/projects' && pathname.startsWith('/projects/'));
+                  const itemPath = normalizePath(item.path);
+                  const isActive = currentPath === itemPath || (itemPath === '/projects' && currentPath.startsWith('/projects/'));
                   return (
                     <motion.div
                       key={item.name}
@@ -152,7 +159,7 @@ export function Navbar() {
               </div>
 
               <Link
-                href={pathname === '/' ? '/#contact' : '/contacto'}
+                href={pathname === '/' ? '/#contact' : '/contacto/'}
                 className="mr-[2px] flex h-[36px] shrink-0 items-center justify-center rounded-full bg-[#222] px-5 text-[14px] font-medium text-[#FFF] transition-[background-color,box-shadow] duration-300 hover:bg-[#6872F2] hover:shadow-[0_10px_26px_rgba(104,114,242,0.28)]"
               >
                 Contacto
@@ -179,7 +186,7 @@ export function Navbar() {
           />
         </div>
 
-        <Link href={pathname === '/' ? '/#contact' : '/contacto'} className="group flex flex-1 items-center justify-center gap-2 text-[9.5px] font-medium uppercase tracking-[0.18em] text-[#1d1d1b]/68 transition-colors duration-300 hover:text-[#6872F2] sm:text-[10px] md:text-[11px]">
+        <Link href={pathname === '/' ? '/#contact' : '/contacto/'} className="group flex flex-1 items-center justify-center gap-2 text-[9.5px] font-medium uppercase tracking-[0.18em] text-[#1d1d1b]/68 transition-colors duration-300 hover:text-[#6872F2] sm:text-[10px] md:text-[11px]">
           Disponible para trabajar
           <span className="navbar-led h-1.5 w-1.5 rounded-full bg-emerald-400 transition-all duration-300 group-hover:scale-[1.45]" />
         </Link>
@@ -209,7 +216,8 @@ export function Navbar() {
             >
               <div className="flex flex-col">
                 {compactNavItems.map((item) => {
-                  const isActive = pathname === item.path || (item.path === '/projects' && pathname.startsWith('/projects/')) || (item.path === '/about' && pathname === '/about') || (item.path === '/blog' && pathname.startsWith('/blog'));
+                  const itemPath = normalizePath(item.path);
+                  const isActive = currentPath === itemPath || (itemPath === '/projects' && currentPath.startsWith('/projects/')) || (itemPath === '/blog' && currentPath.startsWith('/blog/'));
                   return (
                     <Link
                       key={item.name}

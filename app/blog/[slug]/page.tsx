@@ -286,6 +286,10 @@ type BlogPostPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+export function generateStaticParams() {
+  return Object.keys(BLOG_DATABASE).map((slug) => ({ slug }));
+}
+
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
   const blog = BLOG_DATABASE[slug] || FALLBACK_BLOG;
@@ -387,7 +391,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               .filter(([key]) => key !== slug)
               .slice(0, 2)
               .map(([key, recBlog]) => (
-                <Link href={`/blog/${key}`} key={key} className="group block">
+                <Link href={`/blog/${key}/`} key={key} className="group block">
                   <article className="w-full">
                     <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[24px] bg-[#ececec]">
                       <div className="h-full w-full transition-transform duration-700 group-hover:scale-105">

@@ -31,8 +31,31 @@ const antonio = Antonio({
 });
 
 export const metadata: Metadata = {
-  title: 'Mariano Laura | Digital Designer',
-  description: 'US-based digital designer and Framer developer portfolio.',
+  metadataBase: new URL('https://marianolaura.engineer'),
+  title: {
+    default: 'Mariano Laura | Diseñador y Desarrollador Digital',
+    template: '%s | Mariano Laura',
+  },
+  description: 'Portafolio de Mariano Laura. Diseño y desarrollo de experiencias digitales, sitios web, UI/UX, 3D interactivo y software a medida.',
+  keywords: ['Mariano Laura', 'portafolio', 'diseñador digital', 'desarrollador web', 'UI/UX', 'Next.js', 'WebGL', 'Three.js'],
+  authors: [{ name: 'Mariano Laura' }],
+  creator: 'Mariano Laura',
+  openGraph: {
+    type: 'website',
+    locale: 'es_PE',
+    title: 'Mariano Laura | Diseñador y Desarrollador Digital',
+    description: 'Diseño y desarrollo de experiencias digitales, sitios web, UI/UX, 3D interactivo y software a medida.',
+    siteName: 'Mariano Laura',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Mariano Laura | Diseñador y Desarrollador Digital',
+    description: 'Diseño y desarrollo de experiencias digitales, sitios web, UI/UX, 3D interactivo y software a medida.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
@@ -41,7 +64,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable} ${bricolage.variable} ${antonio.variable}`} suppressHydrationWarning>
+    <html lang="es" className={`${inter.variable} ${playfair.variable} ${bricolage.variable} ${antonio.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased bg-[#FFFFFF]" suppressHydrationWarning>
         {children}
         <NavigationWarmup />

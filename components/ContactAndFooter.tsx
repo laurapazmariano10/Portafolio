@@ -131,5 +131,5 @@ function FooterShell({ ctaHref }: { ctaHref: string }) {
 }
 
 export function FooterOnly() {
-  return <FooterShell ctaHref="/contacto" />;
+  return <FooterShell ctaHref="/contacto/" />;
 }

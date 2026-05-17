@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/dist/ScrollTrigger';
+import { projectTransitionLog } from '@/components/projects/projectAnimationConfig';
 
 const MIN_VISIBLE_MS = 1200;
 const MAX_WEBGL_WAIT_MS = 7000;
@@ -25,9 +26,24 @@ export default function LoadingScreen({ webglReady }: { webglReady: boolean }) {
   const [fallbackReady, setFallbackReady] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const markRef = useRef<HTMLDivElement>(null);
+  const skipSplashRef = useRef(false);
 
   useLayoutEffect(() => {
     if (!isVisible || typeof window === 'undefined') return;
+
+    if (window.location.hash === '#projects') {
+      skipSplashRef.current = true;
+      projectTransitionLog('home splash skipped for hash target', {
+        hash: window.location.hash,
+        scrollY: window.scrollY,
+        pathname: window.location.pathname,
+      });
+      if (rootRef.current) {
+        gsap.set(rootRef.current, { autoAlpha: 0, pointerEvents: 'none' });
+      }
+      requestAnimationFrame(() => ScrollTrigger.refresh());
+      return;
+    }
 
     window.scrollTo(0, 0);
 
@@ -56,6 +72,7 @@ export default function LoadingScreen({ webglReady }: { webglReady: boolean }) {
 
   useLayoutEffect(() => {
     if (!isVisible || typeof window === 'undefined') return;
+    if (skipSplashRef.current) return;
 
     const root = rootRef.current;
     const mark = markRef.current;
@@ -78,6 +95,7 @@ export default function LoadingScreen({ webglReady }: { webglReady: boolean }) {
   }, [isVisible]);
 
   useEffect(() => {
+    if (skipSplashRef.current) return;
     if (webglReady) return;
 
     const fallbackTimer = window.setTimeout(() => {
@@ -88,6 +106,7 @@ export default function LoadingScreen({ webglReady }: { webglReady: boolean }) {
   }, [webglReady]);
 
   useEffect(() => {
+    if (skipSplashRef.current) return;
     if (!webglReady && !fallbackReady) return;
 
     let mounted = true;

@@ -324,6 +324,13 @@ body {
   animation: project-depth-shake 0.22s cubic-bezier(0.2, 0.85, 0.2, 1);
 }
 
+.project-card-reveal {
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: blur(0px) !important;
+  transform: none !important;
+}
+
 @keyframes project-depth-shake {
   0% {
     transform: translate3d(0, 0, 0);

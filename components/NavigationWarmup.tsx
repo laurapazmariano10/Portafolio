@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { PROJECTS } from '@/components/projects/projectsData';
 
-const MAIN_ROUTES = ['/about', '/projects', '/blog', '/contacto'];
+const MAIN_ROUTES = ['/about/', '/projects/', '/blog/', '/contacto/'];
 const KATANA_ASSETS = [
   '/models/Katana_ThreeJS.glb',
   '/hdri/studio.hdr',
@@ -46,7 +46,7 @@ export function NavigationWarmup() {
 
       MAIN_ROUTES.forEach((route) => router.prefetch(route));
       PROJECTS.forEach((project) => {
-        router.prefetch(`/projects/${project.slug}`);
+        router.prefetch(`/projects/${project.slug}/`);
         warmImage(project.cover);
         warmImage(project.depthMap);
         project.images.slice(0, 2).forEach((image) => warmImage(image.src));

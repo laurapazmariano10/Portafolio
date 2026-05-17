@@ -3,181 +3,197 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef } from 'react';
-import gsap from 'gsap';
-import ScrollTrigger from 'gsap/dist/ScrollTrigger';
-import { useGSAP } from '@gsap/react';
+import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import SignatureSVG from '@/components/SignatureSVG';
+import { dispatchPageTransitionNavigation } from '@/components/navigation/pageTransitionEvents';
+import { PROJECT_ROUTE_TRANSITION_EVENT, projectTransitionLog } from '@/components/projects/projectAnimationConfig';
+import { useHorizontalWheelScroll } from '@/components/projects/hooks/useHorizontalWheelScroll';
+import { useProjectDetailReveal } from '@/components/projects/hooks/useProjectDetailReveal';
+import { useProjectDetailScrollReset } from '@/components/projects/hooks/useProjectDetailScrollReset';
+import {
+  clearProjectDetailReturnTarget,
+  getProjectDetailHref,
+  readProjectDetailReturnTarget,
+  type ProjectDetailReturnTarget,
+} from '@/components/projects/projectNavigation';
+import { getProjectDetailFrameClassName } from '@/components/projects/projectVisualConfig';
 import type { Project } from '@/components/projects/projectsData';
-
-gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 type ProjectDetailClientProps = {
   project: Project;
   mode?: 'page' | 'modal';
 };
 
+function ProjectDetailImage({
+  project,
+  image,
+  index,
+}: {
+  project: Project;
+  image: Project['images'][number];
+  index: number;
+}) {
+  const [failed, setFailed] = useState(false);
+  const loadLoggedRef = useRef(false);
+
+  const handleLoad = useCallback((event: SyntheticEvent<HTMLImageElement>) => {
+    if (loadLoggedRef.current) return;
+    loadLoggedRef.current = true;
+
+    projectTransitionLog('project detail image loaded', {
+      slug: project.slug,
+      index,
+      src: image.src,
+      naturalWidth: event.currentTarget.naturalWidth,
+      naturalHeight: event.currentTarget.naturalHeight,
+      pathname: window.location.pathname,
+    });
+  }, [image.src, index, project.slug]);
+
+  const handleError = useCallback(() => {
+    projectTransitionLog('project detail image error', {
+      slug: project.slug,
+      index,
+      src: image.src,
+      pathname: window.location.pathname,
+    });
+    setFailed(true);
+  }, [image.src, index, project.slug]);
+
+  if (failed) {
+    return (
+      <div className="grid h-full w-full place-items-center bg-white/12 px-6 text-center text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-black/45">
+        Imagen no disponible
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={image.src}
+      alt={image.alt}
+      fill
+      sizes={image.variant === 'tall' ? '(max-width: 1023px) 100vw, 560px' : '(max-width: 1023px) 100vw, 1264px'}
+      className="object-contain lg:object-cover"
+      priority={index === 0}
+      loading={index === 0 ? undefined : 'eager'}
+      onLoad={handleLoad}
+      onError={handleError}
+    />
+  );
+}
+
 export default function ProjectDetailClient({ project, mode = 'page' }: ProjectDetailClientProps) {
   const router = useRouter();
   const rootRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const isReturningRef = useRef(false);
-  const horizontalScrollTargetRef = useRef(0);
-  const horizontalScrollRafRef = useRef<number | null>(null);
+  const returnFallbackTimerRef = useRef<number | null>(null);
   const isModal = mode === 'modal';
 
+  useProjectDetailScrollReset(rootRef, project.slug);
+  useHorizontalWheelScroll(rootRef);
+  useProjectDetailReveal(rootRef, trackRef, isModal, project.slug);
+
   useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
+    projectTransitionLog('project detail mounted', {
+      slug: project.slug,
+      mode,
+      imageCount: project.images.length,
+      imageSources: project.images.map((image) => image.src),
+      returnTarget: readProjectDetailReturnTarget(),
+      pathname: window.location.pathname,
+      scrollY: window.scrollY,
+    });
+  }, [mode, project.images, project.slug]);
 
-    const media = window.matchMedia('(min-width: 1024px)');
-    horizontalScrollTargetRef.current = root.scrollLeft;
-
-    const stopHorizontalScroll = () => {
-      if (horizontalScrollRafRef.current !== null) {
-        window.cancelAnimationFrame(horizontalScrollRafRef.current);
-        horizontalScrollRafRef.current = null;
-      }
-    };
-
-    const animateHorizontalScroll = () => {
-      const current = root.scrollLeft;
-      const target = horizontalScrollTargetRef.current;
-      const next = current + (target - current) * 0.18;
-
-      if (Math.abs(target - current) < 0.6) {
-        root.scrollLeft = target;
-        horizontalScrollRafRef.current = null;
-        return;
-      }
-
-      root.scrollLeft = next;
-      horizontalScrollRafRef.current = window.requestAnimationFrame(animateHorizontalScroll);
-    };
-
-    const handleWheel = (event: WheelEvent) => {
-      if (!media.matches) return;
-      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-
-      event.preventDefault();
-      const maxScrollLeft = root.scrollWidth - root.clientWidth;
-      horizontalScrollTargetRef.current = Math.max(0, Math.min(maxScrollLeft, horizontalScrollTargetRef.current + event.deltaY));
-
-      if (horizontalScrollRafRef.current === null) {
-        horizontalScrollRafRef.current = window.requestAnimationFrame(animateHorizontalScroll);
-      }
-    };
-
-    root.addEventListener('wheel', handleWheel, { passive: false });
+  useEffect(() => {
     return () => {
-      root.removeEventListener('wheel', handleWheel);
-      stopHorizontalScroll();
+      if (returnFallbackTimerRef.current !== null) {
+        window.clearTimeout(returnFallbackTimerRef.current);
+      }
     };
-  }, []);
+  }, [project.slug]);
 
-  useGSAP(
-    () => {
-      const root = rootRef.current;
-      const track = trackRef.current;
-      if (!root || !track) return;
-
-      const mm = gsap.matchMedia();
-      const scroller = isModal ? root : undefined;
-
-      mm.add('(min-width: 1024px)', () => {
-        gsap.set(track, { clearProps: 'transform' });
-        gsap.set('[data-project-frame]', { autoAlpha: 1, scale: 1, rotate: 0, filter: 'blur(0px)' });
-
-        gsap.fromTo('[data-detail-intro]', {
-          autoAlpha: 0,
-          y: 36,
-          filter: 'blur(10px)',
-        }, {
-          autoAlpha: 1,
-          y: 0,
-          filter: 'blur(0px)',
-          duration: 1,
-          ease: 'power3.out',
-          stagger: 0.08,
-        });
-      });
-
-      mm.add('(max-width: 1023px)', () => {
-        gsap.set(track, { clearProps: 'transform' });
-
-        gsap.fromTo('[data-detail-intro]', {
-          autoAlpha: 0,
-          y: 28,
-          filter: 'blur(10px)',
-        }, {
-          autoAlpha: 1,
-          y: 0,
-          filter: 'blur(0px)',
-          duration: 0.8,
-          ease: 'power3.out',
-          stagger: 0.06,
-        });
-
-        gsap.utils.toArray<HTMLElement>('[data-project-frame]').forEach((frame) => {
-          gsap.fromTo(frame, {
-            autoAlpha: 0,
-            y: 42,
-            scale: 0.97,
-            filter: 'blur(10px)',
-          }, {
-            autoAlpha: 1,
-            y: 0,
-            scale: 1,
-            filter: 'blur(0px)',
-            duration: 0.75,
-            ease: 'power3.out',
-            scrollTrigger: {
-              trigger: frame,
-              scroller,
-              start: 'top 88%',
-              toggleActions: 'play none none reverse',
-            },
-          });
-        });
-      });
-
-      return () => {
-        mm.revert();
-      };
-    },
-    { scope: rootRef, dependencies: [isModal] }
-  );
-
-  const handleBackClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
-    if (isReturningRef.current) return;
-
-    isReturningRef.current = true;
-
+  const readProjectReturnContext = useCallback(() => {
+    const returnTarget = readProjectDetailReturnTarget();
     let context: { slug: string; scrollY: number; cover: string; gradient: string } = {
       slug: project.slug,
-      scrollY: 0,
+      scrollY: returnTarget?.source === 'projects' ? returnTarget.scrollY : 0,
       cover: project.cover,
       gradient: project.gradient,
     };
 
-    try {
-      const raw = window.sessionStorage.getItem('project-transition-context');
-      if (raw) context = { ...context, ...JSON.parse(raw) };
-    } catch {
-      context = {
-        slug: project.slug,
-        scrollY: 0,
-        cover: project.cover,
-        gradient: project.gradient,
-      };
+    if (returnTarget?.source === 'projects') {
+      try {
+        const raw = window.sessionStorage.getItem('project-transition-context');
+        if (raw) context = { ...context, ...JSON.parse(raw) };
+      } catch {
+        context = {
+          slug: project.slug,
+          scrollY: returnTarget.scrollY,
+          cover: project.cover,
+          gradient: project.gradient,
+        };
+      }
     }
 
+    return context;
+  }, [project.cover, project.gradient, project.slug]);
+
+  const startHomeReturn = useCallback((returnTarget: ProjectDetailReturnTarget, replace = false) => {
+    if (isReturningRef.current) return;
+
+    isReturningRef.current = true;
+    projectTransitionLog('detail home return start', {
+      slug: project.slug,
+      returnTarget,
+      replace,
+      currentPathname: window.location.pathname,
+      windowScrollY: window.scrollY,
+      rootScrollTop: rootRef.current?.scrollTop,
+      rootScrollLeft: rootRef.current?.scrollLeft,
+    });
+    clearProjectDetailReturnTarget();
+    dispatchPageTransitionNavigation({
+      href: returnTarget.href,
+      replace,
+      scroll: true,
+    });
+  }, [project.slug]);
+
+  const startProjectsReturn = useCallback((replace = false) => {
+    if (isReturningRef.current) return;
+
+    isReturningRef.current = true;
+    const context = readProjectReturnContext();
+    clearProjectDetailReturnTarget();
+
     window.sessionStorage.setItem('project-return-transition', JSON.stringify(context));
-    window.dispatchEvent(new CustomEvent('project-route-transition', {
+    projectTransitionLog('detail back dispatch return', {
+      slug: project.slug,
+      context,
+      isModal,
+      currentPathname: window.location.pathname,
+      windowScrollY: window.scrollY,
+      rootScrollTop: rootRef.current?.scrollTop,
+      rootScrollLeft: rootRef.current?.scrollLeft,
+    });
+
+    returnFallbackTimerRef.current = window.setTimeout(() => {
+      projectTransitionLog('detail back fallback reset', {
+        slug: project.slug,
+        pathname: window.location.pathname,
+        windowScrollY: window.scrollY,
+      });
+      isReturningRef.current = false;
+      returnFallbackTimerRef.current = null;
+    }, 2200);
+
+    window.dispatchEvent(new CustomEvent(PROJECT_ROUTE_TRANSITION_EVENT, {
       detail: {
         type: 'return',
-        href: '/projects',
+        href: '/projects/',
         context,
         isModalReturn: isModal,
         onNavigate: () => {
@@ -186,15 +202,67 @@ export default function ProjectDetailClient({ project, mode = 'page' }: ProjectD
             return;
           }
 
-          router.push('/projects', { scroll: false });
+          if (replace) {
+            router.replace('/projects/', { scroll: false });
+            return;
+          }
+
+          router.push('/projects/', { scroll: false });
         },
       },
     }));
+  }, [isModal, project.slug, readProjectReturnContext, router]);
+
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (isReturningRef.current) return;
+
+      const returnTarget = readProjectDetailReturnTarget();
+      if (!returnTarget) return;
+
+      projectTransitionLog('detail popstate intercepted', {
+        slug: project.slug,
+        returnTarget,
+        pathname: window.location.pathname,
+        scrollY: window.scrollY,
+      });
+      event.stopImmediatePropagation();
+      window.history.pushState(window.history.state, '', getProjectDetailHref(project));
+
+      if (returnTarget.source === 'home') {
+        startHomeReturn(returnTarget, true);
+        return;
+      }
+
+      startProjectsReturn(true);
+    };
+
+    window.addEventListener('popstate', handlePopState, true);
+    return () => window.removeEventListener('popstate', handlePopState, true);
+  }, [project, startHomeReturn, startProjectsReturn]);
+
+  const handleBackClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (event.defaultPrevented) return;
+
+    const returnTarget = readProjectDetailReturnTarget();
+    projectTransitionLog('detail back click', {
+      slug: project.slug,
+      returnTarget,
+      pathname: window.location.pathname,
+      scrollY: window.scrollY,
+    });
+    if (returnTarget?.source === 'home') {
+      event.preventDefault();
+      startHomeReturn(returnTarget);
+      return;
+    }
+
+    event.preventDefault();
+    startProjectsReturn();
   };
 
   const getFrameClassName = (image: Project['images'][number]) => {
-    const isZygoWebSecondImage = project.slug === 'zygo-web' && image.src.includes('/1.1W.webp');
-    const mobileAspect = isZygoWebSecondImage ? 'aspect-[3/4]' : image.variant === 'tall' ? 'aspect-[9/16]' : 'aspect-video';
+    const mobileAspect = getProjectDetailFrameClassName(project, image);
     const desktopSize = image.variant === 'tall'
       ? 'lg:h-[92vh] lg:w-[min(560px,82vw)] lg:rounded-[30px]'
       : 'lg:h-[min(728px,74vh)] lg:w-[min(1264px,86vw)] lg:rounded-[34px]';
@@ -210,10 +278,10 @@ export default function ProjectDetailClient({ project, mode = 'page' }: ProjectD
     <main ref={rootRef} data-project-detail-root className={rootClassName} style={{ background: project.gradient }}>
       <div className="pointer-events-none fixed inset-0 z-0 opacity-60" style={{ background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.18), transparent 34%)' }} />
       <div data-detail-intro className="fixed left-5 top-5 z-30 flex items-center gap-3 md:left-8 md:top-8">
-        <Link href="/projects" onClick={handleBackClick} className={`inline-flex h-11 items-center justify-center rounded-full px-6 text-xs font-bold uppercase tracking-[-0.02em] shadow-[0_18px_50px_rgba(0,0,0,0.13)] transition-transform duration-300 hover:scale-105 ${project.slug === 'qualitiktok' ? 'bg-white text-[#070e36]' : 'bg-white/86 text-[#111]'}`}>
+        <Link href="/projects/" onClick={handleBackClick} className={`inline-flex h-11 items-center justify-center rounded-full px-6 text-xs font-bold uppercase tracking-[-0.02em] shadow-[0_18px_50px_rgba(0,0,0,0.13)] transition-transform duration-300 hover:scale-105 ${project.slug === 'qualitiktok' ? 'bg-white text-[#070e36]' : 'bg-white/86 text-[#111]'}`}>
           Atrás
         </Link>
-        <Link href="/contacto#contact" className={`group relative inline-flex h-11 items-center justify-center overflow-hidden rounded-full px-6 text-xs font-bold uppercase tracking-[-0.02em] shadow-[0_18px_50px_rgba(0,0,0,0.13)] ring-1 transition-all duration-500 ease-out hover:-translate-y-0.5 hover:shadow-[0_22px_62px_rgba(104,114,242,0.28)] ${project.slug === 'qualitiktok' ? 'bg-white/14 text-white ring-white/36 backdrop-blur-md hover:bg-white hover:text-[#070e36] hover:ring-white/70' : 'bg-[#111]/88 text-white ring-white/10 hover:bg-[#6872F2] hover:ring-[#6872F2]/45'}`}>
+        <Link href="/contacto/#contact" className={`group relative inline-flex h-11 items-center justify-center overflow-hidden rounded-full px-6 text-xs font-bold uppercase tracking-[-0.02em] shadow-[0_18px_50px_rgba(0,0,0,0.13)] ring-1 transition-all duration-500 ease-out hover:-translate-y-0.5 hover:shadow-[0_22px_62px_rgba(104,114,242,0.28)] ${project.slug === 'qualitiktok' ? 'bg-white/14 text-white ring-white/36 backdrop-blur-md hover:bg-white hover:text-[#070e36] hover:ring-white/70' : 'bg-[#111]/88 text-white ring-white/10 hover:bg-[#6872F2] hover:ring-[#6872F2]/45'}`}>
           <span className="absolute inset-0 -translate-x-[120%] bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.34)_45%,transparent_68%)] transition-transform duration-700 ease-out group-hover:translate-x-[120%]" />
           <span className="absolute inset-[1px] rounded-full bg-[radial-gradient(circle_at_50%_-20%,rgba(255,255,255,0.38),transparent_44%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
           <span className="relative z-10 transition-transform duration-500 ease-out group-hover:translate-x-[-3px]">Contacto</span>
@@ -250,7 +318,7 @@ export default function ProjectDetailClient({ project, mode = 'page' }: ProjectD
             data-project-frame
             className={getFrameClassName(image)}
           >
-            <Image src={image.src} alt={image.alt} fill sizes={image.variant === 'tall' ? '(max-width: 1023px) 100vw, 560px' : '(max-width: 1023px) 100vw, 1264px'} className="object-contain lg:object-cover" priority={index === 0} />
+            <ProjectDetailImage project={project} image={image} index={index} />
           </figure>
         ))}
       </div>

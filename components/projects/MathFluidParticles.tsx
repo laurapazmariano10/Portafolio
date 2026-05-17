@@ -27,6 +27,8 @@ const pickColor = () => Math.random() < 0.80
 const FILL = 0.65;       // particles fill bottom 65%
 const MIN_FS = 30;
 const MAX_FS = 68;
+const COMPACT_MAX_PARTICLES = 70;
+const DESKTOP_MAX_PARTICLES = 460;
 const CUR_R = 100;        // cursor influence radius
 
 interface SpriteData {
@@ -86,6 +88,7 @@ export default function MathFluidParticles() {
   const runnerRef = useRef<Matter.Runner | null>(null);
   const rafRef = useRef<number | null>(null);
   const awakeRef = useRef(true);
+  const runnerActiveRef = useRef(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -94,6 +97,8 @@ export default function MathFluidParticles() {
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
+    const isCompact = window.matchMedia('(max-width: 1023px), (pointer: coarse)').matches;
+    const maxParticles = isCompact ? COMPACT_MAX_PARTICLES : DESKTOP_MAX_PARTICLES;
     let cw = 0, ch = 0, curDpr = 1;
 
     // Initialize Matter.js
@@ -144,7 +149,7 @@ export default function MathFluidParticles() {
         const top = ch * (1 - FILL);
         const fh = ch - top;
         const avg = (MIN_FS + MAX_FS) / 2;
-        const count = Math.min(Math.floor((cw * fh * 0.9) / (avg * avg * 0.8)), 460);
+        const count = Math.min(Math.floor((cw * fh * 0.9) / (avg * avg * 0.8)), maxParticles);
 
         const cols = Math.ceil(Math.sqrt(count * (cw / fh)));
         const rows = Math.ceil(count / cols);
@@ -188,16 +193,36 @@ export default function MathFluidParticles() {
     const resObs = new ResizeObserver(resize);
     resObs.observe(container);
 
-    const wakeObs = new IntersectionObserver(
-      ([e]) => { awakeRef.current = e.isIntersecting; },
-      { rootMargin: '300px' },
-    );
-    wakeObs.observe(container);
-
     // Runner manages the engine ticks smoothly
     const runner = Matter.Runner.create();
     runnerRef.current = runner;
-    Matter.Runner.run(runner, engine);
+
+    const startRunner = () => {
+      if (runnerActiveRef.current) return;
+      Matter.Runner.run(runner, engine);
+      runnerActiveRef.current = true;
+    };
+
+    const stopRunner = () => {
+      if (!runnerActiveRef.current) return;
+      Matter.Runner.stop(runner);
+      runnerActiveRef.current = false;
+    };
+
+    startRunner();
+
+    const wakeObs = new IntersectionObserver(
+      ([e]) => {
+        awakeRef.current = e.isIntersecting;
+        if (e.isIntersecting) {
+          startRunner();
+        } else {
+          stopRunner();
+        }
+      },
+      { rootMargin: '300px' },
+    );
+    wakeObs.observe(container);
 
     let lastMouseX = -9999, lastMouseY = -9999;
     let mouseVx = 0, mouseVy = 0;
@@ -359,7 +384,7 @@ export default function MathFluidParticles() {
       container.removeEventListener('touchend', onTouchEnd);
       container.removeEventListener('touchcancel', onTouchEnd);
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-      if (runnerRef.current) Matter.Runner.stop(runnerRef.current);
+      stopRunner();
       Matter.Engine.clear(engine);
     };
   }, []);
@@ -396,15 +421,17 @@ export default function MathFluidParticles() {
       <div ref={containerRef} className="math-fluid__sticky relative h-full w-full touch-pan-y overflow-hidden bg-white">
         <canvas ref={canvasRef} className="absolute inset-0 z-0 h-full w-full" />
         <div ref={textRef} className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center text-center text-[#111]">
-          <p className="mb-5 font-[family-name:var(--font-sans)] text-[clamp(0.78rem,1vw,0.95rem)] font-medium uppercase tracking-[0.22em] text-[#303030]/70">
-            tienes una idea en mente?
-          </p>
-          <Link href="/contacto#contact" className="pointer-events-auto transition-transform hover:scale-105 duration-300">
-            <h2 className="font-[family-name:var(--font-antonio)] text-[clamp(3.4rem,9vw,8.4rem)] font-bold uppercase leading-[1.05] tracking-[-0.045em] drop-shadow-sm">
-              <span className="block"><SlotWord word="Trabajemos" idPrefix="t" /></span>
-              <span className="block"><SlotWord word="juntos!" idPrefix="j" /></span>
-            </h2>
-          </Link>
+          <div className="-translate-y-[12vh] md:-translate-y-[9vh] lg:translate-y-0">
+            <p className="mb-5 font-[family-name:var(--font-sans)] text-[clamp(0.78rem,1vw,0.95rem)] font-medium uppercase tracking-[0.22em] text-[#303030]/70">
+              tienes una idea en mente?
+            </p>
+            <Link href="/contacto/#contact" className="pointer-events-auto transition-transform hover:scale-105 duration-300">
+              <h2 className="font-[family-name:var(--font-antonio)] text-[clamp(3.4rem,9vw,8.4rem)] font-bold uppercase leading-[1.05] tracking-[-0.045em] drop-shadow-sm">
+                <span className="block"><SlotWord word="Trabajemos" idPrefix="t" /></span>
+                <span className="block"><SlotWord word="juntos!" idPrefix="j" /></span>
+              </h2>
+            </Link>
+          </div>
         </div>
       </div>
     </section>

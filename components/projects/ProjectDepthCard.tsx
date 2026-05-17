@@ -2,6 +2,7 @@
 
 
 import { useEffect, useRef, useState } from 'react';
+import { PROJECT_CARD_IMAGE_SCALE, PROJECT_COVER_INTERNAL_ZOOM } from '@/components/projects/projectAnimationConfig';
 
 type ProjectDepthCardProps = {
   cover: string;
@@ -24,7 +25,7 @@ void main() {
 
 const FRAGMENT_SHADER = `
 precision mediump float;
-#define INTERNAL_ZOOM 0.92
+#define INTERNAL_ZOOM ${PROJECT_COVER_INTERNAL_ZOOM.toFixed(6)}
 uniform sampler2D u_image;
 uniform sampler2D u_depth;
 uniform vec2 u_mouse;
@@ -91,29 +92,45 @@ export default function ProjectDepthCard({ cover, depthMap, title, className, st
   const canHoverRef = useRef(false);
   const shakeTimerRef = useRef<number | null>(null);
   const [isShaking, setIsShaking] = useState(false);
+  const [useCanvas, setUseCanvas] = useState(false);
 
   useEffect(() => {
 
 
     const canvas = canvasRef.current;
     if (!canvas) return;
-    canHoverRef.current = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    canHoverRef.current = canHover;
+    setUseCanvas(canHover);
+    if (!canHover) return;
+
     const gl = canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: false });
     if (!gl) return;
 
     // Build Program
     const vs = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
     const fs = createShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
-    if (!vs || !fs) return;
+    if (!vs || !fs) {
+      if (vs) gl.deleteShader(vs);
+      if (fs) gl.deleteShader(fs);
+      return;
+    }
 
     const program = gl.createProgram();
-    if (!program) return;
+    if (!program) {
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+      return;
+    }
     gl.attachShader(program, vs);
     gl.attachShader(program, fs);
     gl.linkProgram(program);
     
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       console.error('Program link error:', gl.getProgramInfoLog(program));
+      gl.deleteProgram(program);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
       return;
     }
 
@@ -141,9 +158,14 @@ export default function ProjectDepthCard({ cover, depthMap, title, className, st
 
     // Helper to load textures
     let imageNaturalSize = { width: 1, height: 1 };
+    let disposed = false;
+    const textures: WebGLTexture[] = [];
 
     const createTexture = (src: string, index: number, uniformName: string, onLoad?: (img: HTMLImageElement) => void) => {
       const texture = gl.createTexture();
+      if (!texture) return;
+      textures.push(texture);
+
       gl.activeTexture(gl.TEXTURE0 + index);
       gl.bindTexture(gl.TEXTURE_2D, texture);
       
@@ -154,6 +176,7 @@ export default function ProjectDepthCard({ cover, depthMap, title, className, st
       img.crossOrigin = 'anonymous';
       img.src = src;
       img.onload = () => {
+        if (disposed) return;
         gl.activeTexture(gl.TEXTURE0 + index);
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
@@ -216,10 +239,15 @@ export default function ProjectDepthCard({ cover, depthMap, title, className, st
     render();
 
     return () => {
+      disposed = true;
       observer.disconnect();
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (shakeTimerRef.current !== null) window.clearTimeout(shakeTimerRef.current);
+      textures.forEach((texture) => gl.deleteTexture(texture));
+      if (positionBuffer) gl.deleteBuffer(positionBuffer);
       gl.deleteProgram(program);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
     };
   }, [cover, depthMap, strength, invertDepth]);
 
@@ -255,7 +283,15 @@ export default function ProjectDepthCard({ cover, depthMap, title, className, st
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
     >
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full object-cover" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={cover}
+        alt={title}
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ transform: `scale(${PROJECT_CARD_IMAGE_SCALE})` }}
+        draggable={false}
+      />
+      <canvas ref={canvasRef} className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${useCanvas ? 'opacity-100' : 'opacity-0'}`} />
     </div>
   );
 }

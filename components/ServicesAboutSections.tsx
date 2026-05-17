@@ -8,6 +8,11 @@ import SignatureSVG from '@/components/SignatureSVG';
 import { ContactAndFooter } from '@/components/ContactAndFooter';
 import { Hand } from 'lucide-react';
 import Link from 'next/link';
+import {
+  getProjectDetailHref,
+  setProjectDetailReturnTarget,
+} from '@/components/projects/projectNavigation';
+import { projectTransitionLog } from '@/components/projects/projectAnimationConfig';
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -41,24 +46,28 @@ const SERVICES = [
 
 const PROJECTS = [
   {
+    slug: 'zygo-web',
     title: 'Zygo web',
     description: 'Página web moderna y a medida para una cadena de consultorios especializados en la mujer.',
     tag: 'Web a medida',
     image: '/imgProyectosWebp/zygoWebWebp/PortadaW.webp',
   },
   {
+    slug: 'pms',
+    title: 'PMS-Tg',
+    description: 'Herramienta web de gestión clínica multirol y multisede para recepción, caja, reportes, finanzas y gerencia.',
+    tag: 'SaaS clínico',
+    image: '/imgProyectosWebp/PMS/portada.webp',
+  },
+  {
+    slug: 'pisky',
     title: 'Pisky',
     description: 'Sistema de mensajería masiva por WhatsApp para una empresa de turismo.',
     tag: 'Automatización',
     image: '/imgProyectosWebp/piskyWebp/PortadaP.webp',
   },
   {
-    title: 'Qualitiktok',
-    description: 'Software de escritorio que exporta tus videos con los valores óptimos para que TikTok no los recomprima con pérdida.',
-    tag: 'Software desktop',
-    image: '/imgProyectosWebp/qualitiktokWebp/portada.webp',
-  },
-  {
+    slug: 'zygo-app',
     title: 'MediRecord',
     description: 'Sistema de gestión clínica con registro de pacientes, historiales médicos, control de citas y administración por roles.',
     tag: 'Sistema clínico',
@@ -142,7 +151,7 @@ export default function ServicesAboutSections() {
   const cardRef = useRef<HTMLDivElement>(null);
   const cardInnerRef = useRef<HTMLDivElement>(null);
   const projectsIntroRef = useRef<HTMLDivElement>(null);
-  const projectCardRefs = useRef<HTMLDivElement[]>([]);
+  const projectCardRefs = useRef<HTMLElement[]>([]);
   const projectsButtonRef = useRef<HTMLAnchorElement>(null);
   const cursorPreviewRef = useRef<HTMLDivElement>(null);
   const cursorImageRef = useRef<HTMLImageElement>(null);
@@ -150,6 +159,23 @@ export default function ServicesAboutSections() {
   const [activeService, setActiveService] = useState<(typeof SERVICES)[number] | null>(null);
   const [activeServiceIndex, setActiveServiceIndex] = useState(-1);
   const [activeFaq, setActiveFaq] = useState(-1);
+
+  const prepareHomeProjectNavigation = (project: (typeof PROJECTS)[number]) => {
+    const href = getProjectDetailHref(project);
+    setProjectDetailReturnTarget({
+      source: 'home',
+      href: '/#projects',
+      scrollY: window.scrollY,
+    });
+    projectTransitionLog('home project click stores return target', {
+      slug: project.slug,
+      href,
+      returnHref: '/#projects',
+      scrollY: window.scrollY,
+      projectsRect: projectsRef.current?.getBoundingClientRect(),
+      clickedCardRect: projectCardRefs.current.find((card) => card.dataset.homeProjectSlug === project.slug)?.getBoundingClientRect(),
+    });
+  };
 
   useGSAP(
     () => {
@@ -166,12 +192,32 @@ export default function ServicesAboutSections() {
 
       gsap.set(preview, { autoAlpha: 0, scale: 0.92 });
       const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+      projectTransitionLog('home projects gsap init', {
+        isDesktop,
+        slugs: PROJECTS.map((project) => project.slug),
+        cards: projectCards.length,
+        scrollY: window.scrollY,
+        projectsRect: projects?.getBoundingClientRect(),
+        firstCardRect: projectCards[0]?.getBoundingClientRect(),
+      });
       if (!isDesktop) {
         gsap.set([projectsIntro, projectsButton, ...projectCards].filter(Boolean), { clearProps: 'all' });
+        projectTransitionLog('home projects gsap mobile clear props', {
+          cards: projectCards.length,
+          scrollY: window.scrollY,
+        });
         return;
       }
 
-      if (!services || !cardTrack || !card || !cardInner) return;
+      if (!services || !cardTrack || !card || !cardInner) {
+        projectTransitionLog('home projects gsap missing refs', {
+          hasServices: Boolean(services),
+          hasCardTrack: Boolean(cardTrack),
+          hasCard: Boolean(card),
+          hasCardInner: Boolean(cardInner),
+        });
+        return;
+      }
       gsap.set(card, {
         x: '-20vw',
         y: '-18vh',
@@ -225,6 +271,19 @@ export default function ServicesAboutSections() {
             end: 'bottom bottom',
             scrub: 0.65,
             invalidateOnRefresh: true,
+            onRefresh: (self) => {
+              projectTransitionLog('home projects timeline refresh', {
+                start: self.start,
+                end: self.end,
+                progress: self.progress,
+                scrollY: window.scrollY,
+                projectsRect: projects.getBoundingClientRect(),
+                cardRects: projectCards.map((projectCard) => ({
+                  slug: projectCard.dataset.homeProjectSlug,
+                  rect: projectCard.getBoundingClientRect(),
+                })),
+              });
+            },
           },
         });
 
@@ -450,7 +509,7 @@ export default function ServicesAboutSections() {
                     </div>
                   </div>
                   <a
-                    href="/about"
+                    href="/about/"
                     className="mt-7 inline-flex h-12 items-center justify-center rounded-full border border-[#6872F2] px-9 text-lg font-bold uppercase tracking-normal text-[#6872F2] transition-all duration-300 hover:bg-[#6872F2] hover:text-white"
                   >
                     Saber más
@@ -492,36 +551,44 @@ export default function ServicesAboutSections() {
             <div className="relative mt-10 grid gap-8 lg:absolute lg:inset-0 lg:mt-0 lg:grid lg:place-items-center lg:px-20 lg:pt-[10vh]">
               {PROJECTS.map((project, index) => (
                 <div
-                  key={project.title}
+                  key={project.slug}
                   ref={(node) => {
                     if (node) projectCardRefs.current[index] = node;
                   }}
+                  data-home-project-slug={project.slug}
                   className="relative aspect-[1120/746.66] w-full overflow-hidden rounded-[28px] border border-[#303030]/10 bg-[#101014] lg:absolute lg:w-[min(1120px,calc(100vw-10rem))] lg:max-h-[72vh]"
                 >
-                  {project.image && <SmartImage src={project.image} alt={project.title} className="absolute inset-0 h-full w-full object-cover" />}
-                  <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(16,16,20,0.72)_0%,rgba(23,24,39,0.58)_45%,rgba(15,15,18,0.78)_100%)]" />
-                  <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(115deg,transparent_0%,rgba(255,255,255,0.1)_42%,transparent_62%)]" />
-                  <div className="relative flex h-full flex-col items-center justify-center px-8 text-center text-white">
-                    <span className="body-small-bold mb-5 rounded-full bg-[#6872F2] px-4 py-1.5 text-white shadow-[0_10px_30px_rgba(104,114,242,0.32)]">
-                      {project.tag}
-                    </span>
-                    <h3 className="text-[clamp(2.5rem,4vw,3.75rem)] font-bold uppercase leading-[1.3] tracking-normal">
-                      {project.title}
-                    </h3>
-                    <p className="body-small mt-5 max-w-[680px] text-white/78">
-                      {project.description}
-                    </p>
-                  </div>
+                  <Link
+                    href={getProjectDetailHref(project)}
+                    onClick={() => prepareHomeProjectNavigation(project)}
+                    className="group absolute inset-0 block outline-none focus-visible:ring-2 focus-visible:ring-[#6872F2] focus-visible:ring-offset-4"
+                    aria-label={`Ver detalle de ${project.title}`}
+                  >
+                    {project.image && <SmartImage src={project.image} alt={project.title} className="absolute inset-0 h-full w-full object-cover" />}
+                    <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(16,16,20,0.72)_0%,rgba(23,24,39,0.58)_45%,rgba(15,15,18,0.78)_100%)]" />
+                    <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(115deg,transparent_0%,rgba(255,255,255,0.1)_42%,transparent_62%)]" />
+                    <div className="relative flex h-full flex-col items-center justify-center px-8 text-center text-white">
+                      <span className="body-small-bold mb-5 rounded-full bg-[#6872F2] px-4 py-1.5 text-white shadow-[0_10px_30px_rgba(104,114,242,0.32)]">
+                        {project.tag}
+                      </span>
+                      <h3 className="text-[clamp(2.5rem,4vw,3.75rem)] font-bold uppercase leading-[1.3] tracking-normal">
+                        {project.title}
+                      </h3>
+                      <p className="body-small mt-5 max-w-[680px] text-white/78">
+                        {project.description}
+                      </p>
+                    </div>
+                  </Link>
                 </div>
               ))}
 
-              <a
+              <Link
                 ref={projectsButtonRef}
-                href="#contact"
+                href="/projects/"
                 className="relative z-20 mt-10 inline-flex h-12 items-center justify-center self-center rounded-full border border-[#6872F2] bg-white px-9 text-base font-bold uppercase tracking-normal text-[#6872F2] transition-all duration-300 hover:bg-[#6872F2] hover:text-white lg:absolute lg:bottom-[4vh] lg:mt-0"
               >
                 Más proyectos
-              </a>
+              </Link>
             </div>
           </div>
         </section>
@@ -576,7 +643,7 @@ export default function ServicesAboutSections() {
 
           <div className="mt-12 grid gap-8 lg:grid-cols-2">
             {BLOG_POSTS.map((post, index) => (
-              <Link href={index === 0 ? '/blog/el-futuro-de-la-ia' : '/blog/computacion-cuantica'} key={post.title} className="group block outline-none">
+              <Link href={index === 0 ? '/blog/el-futuro-de-la-ia/' : '/blog/computacion-cuantica/'} key={post.title} className="group block outline-none">
                 <article className="w-full max-w-[540px]">
                   <div className="h-[320px] overflow-hidden rounded-[22px] bg-[#ececec]">
                     <div className="h-full w-full transition-transform duration-700 group-hover:scale-105">
@@ -601,7 +668,7 @@ export default function ServicesAboutSections() {
           </div>
 
           <div className="mt-14 flex justify-center">
-            <Link href="/blog" className="inline-flex h-12 items-center justify-center rounded-full border border-[#6872F2] px-9 text-lg font-bold uppercase tracking-normal text-[#6872F2] transition-all duration-300 hover:bg-[#6872F2] hover:text-white">
+            <Link href="/blog/" className="inline-flex h-12 items-center justify-center rounded-full border border-[#6872F2] px-9 text-lg font-bold uppercase tracking-normal text-[#6872F2] transition-all duration-300 hover:bg-[#6872F2] hover:text-white">
               Explorar todos los blogs
             </Link>
           </div>

@@ -1,8 +1,15 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import gsap from 'gsap';
+import {
+  PROJECT_CARD_BORDER_RADIUS,
+  PROJECT_CARD_IMAGE_SCALE,
+  PROJECT_RETURN_SCROLL_GUARD_KEY,
+  PROJECT_ROUTE_TRANSITION_EVENT,
+  projectTransitionLog,
+} from '@/components/projects/projectAnimationConfig';
 
 type ProjectTransitionRect = {
   left: number;
@@ -29,13 +36,39 @@ type ProjectTransitionDetail = {
 
 type PendingTransition = ProjectTransitionDetail;
 
-const EVENT_NAME = 'project-route-transition';
-const CARD_IMAGE_SCALE = 1 / 0.92;
+const RETURN_LAYOUT_MAX_FRAMES = 45;
+const RETURN_LAYOUT_STABLE_FRAMES = 3;
+const RECT_STABLE_EPSILON = 0.75;
+const SCROLL_KEYS = new Set([' ', 'PageUp', 'PageDown', 'End', 'Home', 'ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown']);
+
+function normalizePath(path: string): string {
+  if (path === '/') return path;
+  return path.endsWith('/') ? path.slice(0, -1) : path;
+}
 
 function setScrollPosition(y: number) {
   window.scrollTo(0, y);
   document.documentElement.scrollTop = y;
   document.body.scrollTop = y;
+}
+
+function toTransitionRect(rect: DOMRect): ProjectTransitionRect {
+  return {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height,
+  };
+}
+
+function rectsAreStable(a: ProjectTransitionRect | null, b: ProjectTransitionRect) {
+  if (!a) return false;
+  return (
+    Math.abs(a.left - b.left) <= RECT_STABLE_EPSILON &&
+    Math.abs(a.top - b.top) <= RECT_STABLE_EPSILON &&
+    Math.abs(a.width - b.width) <= RECT_STABLE_EPSILON &&
+    Math.abs(a.height - b.height) <= RECT_STABLE_EPSILON
+  );
 }
 
 function getStoredContext(fallback: ProjectTransitionContext): ProjectTransitionContext {
@@ -55,26 +88,61 @@ export function ProjectRouteTransitionOverlay() {
   const colorOverlayRef = useRef<HTMLDivElement>(null);
   const pendingRef = useRef<PendingTransition | null>(null);
   const isAnimatingRef = useRef(false);
+  const isScrollLockedRef = useRef(false);
   const previousHtmlOverflowRef = useRef('');
   const previousBodyOverflowRef = useRef('');
+  const previousHtmlOverscrollRef = useRef('');
+  const previousBodyOverscrollRef = useRef('');
+  const previousBodyTouchActionRef = useRef('');
 
-  const lockScroll = () => {
+  const preventScrollEvent = useCallback((event: Event) => {
+    if (!isScrollLockedRef.current) return;
+    event.preventDefault();
+  }, []);
+
+  const preventScrollKey = useCallback((event: KeyboardEvent) => {
+    if (!isScrollLockedRef.current || !SCROLL_KEYS.has(event.key)) return;
+    event.preventDefault();
+  }, []);
+
+  const lockScroll = useCallback(() => {
+    if (isScrollLockedRef.current) return;
+    isScrollLockedRef.current = true;
     previousHtmlOverflowRef.current = document.documentElement.style.overflow;
     previousBodyOverflowRef.current = document.body.style.overflow;
+    previousHtmlOverscrollRef.current = document.documentElement.style.overscrollBehavior;
+    previousBodyOverscrollRef.current = document.body.style.overscrollBehavior;
+    previousBodyTouchActionRef.current = document.body.style.touchAction;
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
-  };
+    document.documentElement.style.overscrollBehavior = 'none';
+    document.body.style.overscrollBehavior = 'none';
+    document.body.style.touchAction = 'none';
+    window.addEventListener('wheel', preventScrollEvent, { passive: false, capture: true });
+    window.addEventListener('touchmove', preventScrollEvent, { passive: false, capture: true });
+    window.addEventListener('keydown', preventScrollKey, { capture: true });
+  }, [preventScrollEvent, preventScrollKey]);
 
-  const unlockScroll = () => {
+  const unlockScroll = useCallback(() => {
+    if (!isScrollLockedRef.current) return;
+    isScrollLockedRef.current = false;
     document.documentElement.style.overflow = previousHtmlOverflowRef.current;
     document.body.style.overflow = previousBodyOverflowRef.current;
-  };
+    document.documentElement.style.overscrollBehavior = previousHtmlOverscrollRef.current;
+    document.body.style.overscrollBehavior = previousBodyOverscrollRef.current;
+    document.body.style.touchAction = previousBodyTouchActionRef.current;
+    window.removeEventListener('wheel', preventScrollEvent, { capture: true });
+    window.removeEventListener('touchmove', preventScrollEvent, { capture: true });
+    window.removeEventListener('keydown', preventScrollKey, { capture: true });
+  }, [preventScrollEvent, preventScrollKey]);
 
   useEffect(() => {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
-  }, []);
+
+    return () => unlockScroll();
+  }, [unlockScroll]);
 
   useEffect(() => {
     const handleTransition = (event: Event) => {
@@ -88,7 +156,22 @@ export function ProjectRouteTransitionOverlay() {
       pendingRef.current = { ...detail, context };
       isAnimatingRef.current = true;
       lockScroll();
+      projectTransitionLog('overlay event received', {
+        type: detail.type,
+        href: detail.href,
+        context,
+        pathname: window.location.pathname,
+        scrollY: window.scrollY,
+        isModalReturn: detail.isModalReturn,
+      });
+
       const navigate = () => {
+        projectTransitionLog('overlay navigate', {
+          href: detail.href,
+          type: detail.type,
+          beforePathname: window.location.pathname,
+          beforeScrollY: window.scrollY,
+        });
         if (detail.onNavigate) {
           detail.onNavigate();
           return;
@@ -100,6 +183,9 @@ export function ProjectRouteTransitionOverlay() {
       if (detail.type === 'enter') {
         const rect = context.rect;
         if (!rect) {
+          pendingRef.current = null;
+          isAnimatingRef.current = false;
+          unlockScroll();
           navigate();
           return;
         }
@@ -113,7 +199,7 @@ export function ProjectRouteTransitionOverlay() {
           y: rect.top,
           width: rect.width,
           height: rect.height,
-          borderRadius: 28,
+          borderRadius: PROJECT_CARD_BORDER_RADIUS,
           scaleX: 1,
           scaleY: 1,
           force3D: true,
@@ -125,7 +211,7 @@ export function ProjectRouteTransitionOverlay() {
           backgroundImage: `url(${context.cover})`,
           backgroundPosition: 'center',
           backgroundSize: 'cover',
-          scale: CARD_IMAGE_SCALE,
+          scale: PROJECT_CARD_IMAGE_SCALE,
           force3D: true,
           willChange: 'transform',
         });
@@ -162,6 +248,14 @@ export function ProjectRouteTransitionOverlay() {
         ? document.querySelector(`[data-project-slug="${context.slug}"] [data-project-card-frame]`) as HTMLElement | null
         : null;
       const liveTargetRect = liveTargetCard?.getBoundingClientRect();
+      projectTransitionLog('overlay return start', {
+        slug: context.slug,
+        storedScrollY: context.scrollY,
+        currentScrollY: window.scrollY,
+        hasLiveTargetCard: Boolean(liveTargetCard),
+        liveTargetRect: liveTargetRect ? toTransitionRect(liveTargetRect) : null,
+        isModalReturn: detail.isModalReturn,
+      });
       gsap.set(overlay, {
         autoAlpha: 0,
         pointerEvents: 'auto',
@@ -181,7 +275,7 @@ export function ProjectRouteTransitionOverlay() {
         backgroundImage: `url(${context.cover})`,
         backgroundPosition: 'center',
         backgroundSize: 'cover',
-        scale: CARD_IMAGE_SCALE,
+        scale: PROJECT_CARD_IMAGE_SCALE,
         force3D: true,
         willChange: 'transform',
       });
@@ -217,7 +311,7 @@ export function ProjectRouteTransitionOverlay() {
             y: liveTargetRect.top,
             width: liveTargetRect.width,
             height: liveTargetRect.height,
-            borderRadius: 28,
+            borderRadius: PROJECT_CARD_BORDER_RADIUS,
             duration: 1.05,
             ease: 'power4.inOut',
           })
@@ -241,9 +335,9 @@ export function ProjectRouteTransitionOverlay() {
         .to(colorOverlay, { autoAlpha: 0, duration: 0.32, ease: 'power2.inOut' }, '-=0.02');
     };
 
-    window.addEventListener(EVENT_NAME, handleTransition);
-    return () => window.removeEventListener(EVENT_NAME, handleTransition);
-  }, [router]);
+    window.addEventListener(PROJECT_ROUTE_TRANSITION_EVENT, handleTransition);
+    return () => window.removeEventListener(PROJECT_ROUTE_TRANSITION_EVENT, handleTransition);
+  }, [lockScroll, router, unlockScroll]);
 
   useEffect(() => {
     const pending = pendingRef.current;
@@ -251,7 +345,13 @@ export function ProjectRouteTransitionOverlay() {
     const imageLayer = imageLayerRef.current;
     const colorOverlay = colorOverlayRef.current;
     if (!pending || !overlay || !imageLayer || !colorOverlay) return;
-    if (pathname !== pending.href) return;
+    if (normalizePath(pathname) !== normalizePath(pending.href)) return;
+    projectTransitionLog('overlay pathname matched pending', {
+      pathname,
+      pendingHref: pending.href,
+      type: pending.type,
+      currentScrollY: window.scrollY,
+    });
 
     if (pending.type === 'enter') {
       window.requestAnimationFrame(() => {
@@ -293,16 +393,51 @@ export function ProjectRouteTransitionOverlay() {
       return;
     }
 
+    setScrollPosition(context.scrollY);
+    projectTransitionLog('overlay return pre-layout scroll set', {
+      targetScrollY: context.scrollY,
+      afterScrollY: window.scrollY,
+      documentTop: document.documentElement.scrollTop,
+      bodyTop: document.body.scrollTop,
+    });
+
     let frame = 0;
+    let stableFrames = 0;
+    let previousRect: ProjectTransitionRect | null = null;
+
     const waitForProjectsLayout = () => {
       setScrollPosition(context.scrollY);
       frame += 1;
 
+      const scrollSettled = Math.abs(window.scrollY - context.scrollY) < 2;
+
       const targetCard = document.querySelector(`[data-project-slug="${context.slug}"] [data-project-card-frame]`) as HTMLElement | null;
       const rect = targetCard?.getBoundingClientRect();
-      const ready = rect && rect.width > 10 && rect.height > 10;
+      const candidateRect = rect && rect.width > 10 && rect.height > 10 ? toTransitionRect(rect) : null;
 
-      if (!ready && frame < 12) {
+      if (candidateRect) {
+        stableFrames = rectsAreStable(previousRect, candidateRect) ? stableFrames + 1 : 1;
+        previousRect = candidateRect;
+      } else {
+        stableFrames = 0;
+        previousRect = null;
+      }
+
+      const ready = Boolean(candidateRect && scrollSettled && stableFrames >= RETURN_LAYOUT_STABLE_FRAMES);
+      if (frame <= 5 || ready || frame === RETURN_LAYOUT_MAX_FRAMES) {
+        projectTransitionLog('overlay return layout frame', {
+          frame,
+          scrollY: window.scrollY,
+          targetScrollY: context.scrollY,
+          scrollSettled,
+          stableFrames,
+          ready,
+          hasTargetCard: Boolean(targetCard),
+          candidateRect,
+        });
+      }
+
+      if (!ready && frame < RETURN_LAYOUT_MAX_FRAMES) {
         window.requestAnimationFrame(waitForProjectsLayout);
         return;
       }
@@ -328,17 +463,28 @@ export function ProjectRouteTransitionOverlay() {
         backgroundImage: `url(${context.cover})`,
         backgroundPosition: 'center',
         backgroundSize: 'cover',
-        scale: CARD_IMAGE_SCALE,
+        scale: PROJECT_CARD_IMAGE_SCALE,
         force3D: true,
         willChange: 'transform',
       });
       gsap.set(colorOverlay, { autoAlpha: 0 });
 
-      const finalRect = rect ?? targetRect;
+      const finalRect = candidateRect ?? targetRect;
+      projectTransitionLog('overlay return animate to rect', {
+        finalRect,
+        usedFallbackRect: !candidateRect,
+        scrollY: window.scrollY,
+        targetScrollY: context.scrollY,
+      });
 
       gsap.timeline({
         onComplete: () => {
           setScrollPosition(context.scrollY);
+          projectTransitionLog('overlay return complete', {
+            finalScrollY: window.scrollY,
+            targetScrollY: context.scrollY,
+          });
+          window.sessionStorage.removeItem(PROJECT_RETURN_SCROLL_GUARD_KEY);
           gsap.set([overlay, imageLayer, colorOverlay], { clearProps: 'all' });
           pendingRef.current = null;
           isAnimatingRef.current = false;
@@ -350,7 +496,7 @@ export function ProjectRouteTransitionOverlay() {
           y: finalRect.top,
           width: finalRect.width,
           height: finalRect.height,
-          borderRadius: 28,
+          borderRadius: PROJECT_CARD_BORDER_RADIUS,
           duration: 1.05,
           ease: 'power4.inOut',
         })
@@ -360,7 +506,7 @@ export function ProjectRouteTransitionOverlay() {
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(waitForProjectsLayout);
     });
-  }, [pathname]);
+  }, [pathname, unlockScroll]);
 
   return (
     <div ref={overlayRef} className="pointer-events-none fixed left-0 top-0 z-[999] overflow-hidden opacity-0 will-change-transform">

@@ -20,7 +20,7 @@ export default function BlogSection() {
 
         {/* Featured Post */}
         <div className="mb-24 group cursor-pointer">
-          <Link href="/blog/el-futuro-de-la-ia" className="block">
+          <Link href="/blog/el-futuro-de-la-ia/" className="block">
             <div className="relative mb-8 h-[320px] w-full overflow-hidden rounded-[24px] bg-[#f0f0f0] md:h-[500px] md:rounded-[30px]">
               <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
                 <Image src="/imgBlogsWebp/EL FUTURO DE LA INTELIGENCIA ARTIFICIAL/portada.webp" alt="El futuro de la IA" fill className="object-cover" />
@@ -56,7 +56,7 @@ export default function BlogSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-20">
           
           {/* Post 1 */}
-          <Link href="/blog/computacion-cuantica" className="group block outline-none">
+          <Link href="/blog/computacion-cuantica/" className="group block outline-none">
             <article className="w-full">
               <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[24px] bg-[#ececec]">
                 <div className="h-full w-full transition-transform duration-700 group-hover:scale-105">
@@ -79,7 +79,7 @@ export default function BlogSection() {
           </Link>
 
           {/* Post 2 */}
-          <Link href="/blog/realidad-mixta" className="group block outline-none">
+          <Link href="/blog/realidad-mixta/" className="group block outline-none">
             <article className="w-full">
               <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[24px] bg-[#ececec]">
                 <div className="h-full w-full transition-transform duration-700 group-hover:scale-105">
@@ -102,7 +102,7 @@ export default function BlogSection() {
           </Link>
 
           {/* Post 3 */}
-          <Link href="/blog/arquitecturas-serverless" className="group block outline-none">
+          <Link href="/blog/arquitecturas-serverless/" className="group block outline-none">
             <article className="w-full">
               <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[24px] bg-[#ececec]">
                 <div className="h-full w-full transition-transform duration-700 group-hover:scale-105">
@@ -125,7 +125,7 @@ export default function BlogSection() {
           </Link>
 
           {/* Post 4 */}
-          <Link href="/blog/ciberseguridad-iot" className="group block outline-none">
+          <Link href="/blog/ciberseguridad-iot/" className="group block outline-none">
             <article className="w-full">
               <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[24px] bg-[#ececec]">
                 <div className="h-full w-full transition-transform duration-700 group-hover:scale-105">
@@ -148,7 +148,7 @@ export default function BlogSection() {
           </Link>
 
           {/* Post 5 */}
-          <Link href="/blog/impacto-web3" className="group block outline-none">
+          <Link href="/blog/impacto-web3/" className="group block outline-none">
             <article className="w-full">
               <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[24px] bg-[#ececec]">
                 <div className="h-full w-full transition-transform duration-700 group-hover:scale-105">
